@@ -54,7 +54,7 @@ public class SearchResult
     /// The URL of the matched package's homepage.
     /// </summary>
     [JsonProperty("projectUrl")]
-    public string ProjectUrl { get; set; }
+    public string? ProjectUrl { get; set; }
 
     /// <summary>
     /// The URL for the matched package's registration index.

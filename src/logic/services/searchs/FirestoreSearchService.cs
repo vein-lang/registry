@@ -191,9 +191,13 @@ public class FirestoreSearchService : ISearchService
             });
 
     private readonly FireOperationBuilder _table;
+    private readonly IUrlGenerator _url;
 
-    public FirestoreSearchService(FireOperationBuilder operationBuilder)
-        => _table = operationBuilder ?? throw new ArgumentNullException(nameof(operationBuilder));
+    public FirestoreSearchService(FireOperationBuilder operationBuilder, IUrlGenerator url)
+    {
+        _table = operationBuilder ?? throw new ArgumentNullException(nameof(operationBuilder));
+        _url = url;
+    }
 
     public async Task<SearchResponse> SearchAsync(
         SearchRequest request,
@@ -321,7 +325,7 @@ public class FirestoreSearchService : ISearchService
         }
 
         var iconUrl = latest.HasEmbeddedIcon
-                ? "_url.GetPackageIconDownloadUrl(latest.Id, latestVersion)"
+                ? _url.GetPackageIconDownloadUrl(latest.Id, latestVersion)
                 : latest.IconUrl;
 
         return new SearchResult
@@ -332,7 +336,7 @@ public class FirestoreSearchService : ISearchService
             Authors = JsonConvert.DeserializeObject<string[]>(latest.Authors),
             IconUrl = iconUrl,
             LicenseUrl = latest.License,
-            ProjectUrl = latest.ProjectUrl.ToString(),
+            ProjectUrl = latest.ProjectUrl?.ToString(),
             RegistrationIndexUrl = "_url.GetRegistrationIndexUrl(latest.Id)",
             //Summary = latest.Summary,
             //Tags = JsonConvert.DeserializeObject<string[]>(latest.Tags),
