@@ -1,0 +1,55 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.31903.286
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "core", "src\core.csproj", "{849C4D38-8366-49A8-96DA-A37866C4BFCB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "vein", "vein", "{4E1FB4B5-787A-4A10-B23C-08FF1F5DF8FE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "vein.common", "vein-lang\runtime\common\vein.common.csproj", "{F6C95774-E75F-4DA8-99FA-F81DCE13C11F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "vein.project", "vein-lang\lib\projectsystem\vein.project.csproj", "{286ECD4A-748F-42C5-B7A6-97D561FE01A4}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "vein.ast", "vein-lang\lib\ast\vein.ast.csproj", "{A608826A-8742-4C22-A34F-CB54E5361DAC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{DD0CEB81-0426-403F-9FDB-531F3E5EC321}"
+	ProjectSection(SolutionItems) = preProject
+		GitVersion.yml = GitVersion.yml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{849C4D38-8366-49A8-96DA-A37866C4BFCB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{849C4D38-8366-49A8-96DA-A37866C4BFCB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{849C4D38-8366-49A8-96DA-A37866C4BFCB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{849C4D38-8366-49A8-96DA-A37866C4BFCB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6C95774-E75F-4DA8-99FA-F81DCE13C11F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6C95774-E75F-4DA8-99FA-F81DCE13C11F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6C95774-E75F-4DA8-99FA-F81DCE13C11F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6C95774-E75F-4DA8-99FA-F81DCE13C11F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{286ECD4A-748F-42C5-B7A6-97D561FE01A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{286ECD4A-748F-42C5-B7A6-97D561FE01A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{286ECD4A-748F-42C5-B7A6-97D561FE01A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{286ECD4A-748F-42C5-B7A6-97D561FE01A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A608826A-8742-4C22-A34F-CB54E5361DAC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A608826A-8742-4C22-A34F-CB54E5361DAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A608826A-8742-4C22-A34F-CB54E5361DAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A608826A-8742-4C22-A34F-CB54E5361DAC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F6C95774-E75F-4DA8-99FA-F81DCE13C11F} = {4E1FB4B5-787A-4A10-B23C-08FF1F5DF8FE}
+		{286ECD4A-748F-42C5-B7A6-97D561FE01A4} = {4E1FB4B5-787A-4A10-B23C-08FF1F5DF8FE}
+		{A608826A-8742-4C22-A34F-CB54E5361DAC} = {4E1FB4B5-787A-4A10-B23C-08FF1F5DF8FE}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {FA44E4F3-7C78-47F7-9ECC-08293CE00B83}
+	EndGlobalSection
+EndGlobal

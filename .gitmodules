@@ -1,0 +1,3 @@
+[submodule "vein-lang"]
+	path = vein-lang
+	url = https://github.com/vein-lang/vein.git
