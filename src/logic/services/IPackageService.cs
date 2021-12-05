@@ -39,6 +39,8 @@ public interface IPackageService
     /// <returns>The packages found. Always non-null.</returns>
     Task<IReadOnlyList<Package>> FindAsync(string id, bool includeUnlisted, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<Package>> FindForUserAsync(string userID, CancellationToken cancellationToken);
+
     /// <summary>
     /// Determine whether a package exists in the database (even if the package is unlisted).
     /// </summary>

@@ -1,10 +1,12 @@
 namespace core.controllers;
 
 using core.services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
-[Route("@/publish")]
+[Route("@/publish"), Authorize]
+[ApiController]
 public class PackagePublishController : Controller
 {
     private readonly IAuthenticationService _authentication;

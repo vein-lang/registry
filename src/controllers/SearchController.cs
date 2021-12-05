@@ -2,8 +2,11 @@ namespace core.controllers
 {
     using core.services.searchs;
     using core.services.searchs.models;
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
 
+    [AllowAnonymous]
+    [ApiController]
     public class SearchController : Controller
     {
         private readonly ISearchService _searchService;

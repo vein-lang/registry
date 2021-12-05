@@ -61,7 +61,8 @@ public static class DependencyInjectionExtensions
         services.TryAddTransient<IServiceIndexService, RegistryServiceIndex>();
         //services.TryAddTransient<ISymbolIndexingService, SymbolIndexingService>();
         //services.TryAddTransient<ISymbolStorageService, SymbolStorageService>();
-        
+        services.TryAddScoped<IUserService, FirebaseUserService>();
+
         services.TryAddScoped<FireOperationBuilder>();
         services.TryAddTransient<FirebasePackageService>();
         services.TryAddTransient<GoogleCloudStorageService>();

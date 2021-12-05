@@ -1,6 +1,7 @@
 namespace core.services;
 
 using NuGet.Versioning;
+using System;
 
 public class NullPackageService : IPackageService
 {
@@ -31,4 +32,6 @@ public class NullPackageService : IPackageService
 
     public Task<bool> HardDeletePackageAsync(string id, NuGetVersion version, CancellationToken cancellationToken)
         => Task.FromResult(default(bool));
+    public async Task<IReadOnlyList<Package>> FindForUserAsync(string userID, CancellationToken cancellationToken)
+        => new List<Package>().AsReadOnly();
 }

@@ -8,8 +8,13 @@ using NuGet.Versioning;
 public class FireOperationBuilder
 {
     public CollectionReference PackagesReference { get; private set; }
-    public FireOperationBuilder(FirestoreDb firestore) =>
+    public CollectionReference PackagesLinks { get; private set; }
+
+    public FireOperationBuilder(FirestoreDb firestore)
+    {
         PackagesReference = firestore.Collection("packages");
+        PackagesLinks = firestore.Collection("packages-links");
+    }
 
     public async Task<PackageEntity?> Retrieve(string packageId, NuGetVersion packageVersion)
     {

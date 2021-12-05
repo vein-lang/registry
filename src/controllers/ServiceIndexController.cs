@@ -1,9 +1,12 @@
 namespace core.controllers;
 
 using core.services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 
+[AllowAnonymous]
+[ApiController]
 public class ServiceIndexController
 {
     private readonly IServiceIndexService _serviceIndex;

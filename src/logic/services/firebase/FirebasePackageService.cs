@@ -72,6 +72,29 @@ public partial class FirebasePackageService : IPackageService
         CancellationToken cancellationToken)
         => _operationBuilder.ExistAsync(id, version, cancellationToken);
 
+    public async Task<IReadOnlyList<Package>> FindForUserAsync(string userID, CancellationToken cancellationToken)
+    {
+        var packagesLinkQuery = await _operationBuilder.PackagesLinks
+            .WhereEqualTo(nameof(PackageLink.UserID), $"{userID}")
+            .GetSnapshotAsync(cancellationToken);
+
+        var links = packagesLinkQuery.Select(x => x.ConvertTo<PackageLink>().PackageID).ToList();
+
+        var packages = await
+            _operationBuilder.PackagesReference
+                .ListDocumentsAsync()
+                .Where(x => links.Contains(x.Id))
+                .SelectAwait(async x => await x.GetSnapshotAsync())
+                .ToListAsync(cancellationToken);
+
+        return packages
+            .Select(x => x.ConvertTo<PackageEntity>())
+            .Select(AsPackage)
+            .OrderBy(x => x.Name)
+            .ToList()
+            .AsReadOnly();
+    }
+
     public async Task<IReadOnlyList<Package>> FindAsync(string id, bool includeUnlisted, CancellationToken cancellationToken)
     {
         var packages = await

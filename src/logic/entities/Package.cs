@@ -27,7 +27,6 @@ public record Package : PackageManifest
 
     [JsonProperty("published")]
     public DateTimeOffset Published { get; set; }
-
     public static Package CreateFromManifest(PackageManifest manifest) => new Package()
     {
         Downloads = 0,

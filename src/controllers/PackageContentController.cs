@@ -1,9 +1,12 @@
 namespace core.controllers;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NuGet.Versioning;
 using services;
 
+[AllowAnonymous]
+[ApiController]
 public class PackageContentController : Controller
 {
     private readonly IPackageContentService _content;
