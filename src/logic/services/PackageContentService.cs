@@ -64,7 +64,7 @@ public class PackageContentService : IPackageContentService
     public async Task<Stream> GetPackageReadmeStreamOrNullAsync(string id, NuGetVersion version, CancellationToken cancellationToken = default)
     {
         var package = await _packages.FindOrNullAsync(id, version, includeUnlisted: true, cancellationToken);
-        if (!package.HasReadme)
+        if (!package.HasEmbbededReadme)
         {
             return null;
         }

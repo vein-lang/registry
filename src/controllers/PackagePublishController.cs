@@ -9,35 +9,22 @@ using Microsoft.Extensions.Options;
 [ApiController]
 public class PackagePublishController : Controller
 {
-    private readonly IAuthenticationService _authentication;
-    private readonly IPackageService _packages;
     private readonly IPackageIndexingService _indexer;
-    private readonly IOptionsSnapshot<RegistryOptions> _options;
     private readonly ILogger<PackagePublishController> _logger;
+    private readonly IUserService _userService;
 
     public PackagePublishController(
-        IAuthenticationService authentication,
         IPackageIndexingService indexer,
-        IPackageService packages,
-        IOptionsSnapshot<RegistryOptions> options,
-        ILogger<PackagePublishController> logger)
+        ILogger<PackagePublishController> logger,
+        IUserService userService)
     {
-        _authentication = authentication;
         _indexer = indexer;
-        _packages = packages;
-        _options = options;
         _logger = logger;
+        _userService = userService;
     }
 
     public async Task Upload(CancellationToken cancellationToken)
     {
-        if (_options.Value.IsReadOnlyMode ||
-            !await _authentication.AuthenticateAsync(Request.GetApiKey(), cancellationToken))
-        {
-            HttpContext.Response.StatusCode = 401;
-            return;
-        }
-
         try
         {
             using (var uploadStream = await Request.GetUploadStreamOrNullAsync(cancellationToken))
@@ -48,7 +35,8 @@ public class PackagePublishController : Controller
                     return;
                 }
 
-                var result = await _indexer.IndexAsync(uploadStream, cancellationToken);
+                var me = await _userService.GetMeAsync();
+                var result = await _indexer.IndexAsync(uploadStream, me, cancellationToken);
 
                 switch (result)
                 {
@@ -62,6 +50,10 @@ public class PackagePublishController : Controller
 
                     case PackageIndexingResult.Success:
                         HttpContext.Response.StatusCode = 201;
+                        break;
+
+                    case PackageIndexingResult.AccessDenied:
+                        HttpContext.Response.StatusCode = 403;
                         break;
                 }
             }

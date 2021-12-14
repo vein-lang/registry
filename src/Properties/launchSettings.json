@@ -8,7 +8,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development",
         "GOOGLE_APPLICATION_CREDENTIALS": "C:\\git\\additional-resource\\vein-lang-2ca627fcc703.json"
       },
-      "applicationUrl": "https://localhost:7181;http://localhost:5062",
+      "applicationUrl": "https://localhost:8080;http://localhost:5062",
       "dotnetRunMessages": true
     },
     "Docker": {

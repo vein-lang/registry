@@ -35,13 +35,13 @@ public class PackageStorageService : IPackageStorageService
         packageStream = packageStream ?? throw new ArgumentNullException(nameof(packageStream));
 
         var lowercasedId = package.Name.ToLowerInvariant();
-        var lowercasedNormalizedVersion = package.NormalizedVersionString?.ToLowerInvariant();
+        var lowercasedNormalizedVersion = package.Version.ToNormalizedString()?.ToLowerInvariant();
 
         var packagePath = PackagePath(lowercasedId, lowercasedNormalizedVersion ?? "");
         var specPath = VeinSpecPath(lowercasedId, lowercasedNormalizedVersion ?? "");
         var readmePath = ReadmePath(lowercasedId, lowercasedNormalizedVersion ?? "");
         var iconPath = IconPath(lowercasedId, lowercasedNormalizedVersion ?? "");
-
+        
         _logger.LogInformation(
             "Storing package {PackageId} {PackageVersion} at {Path}...",
             lowercasedId,
@@ -91,7 +91,7 @@ public class PackageStorageService : IPackageStorageService
                 lowercasedId,
                 lowercasedNormalizedVersion,
                 readmePath);
-
+            readmeStream.Seek(0, SeekOrigin.Begin);
             result = await _storage.PutAsync(readmePath, readmeStream, ReadmeContentType, cancellationToken);
             if (result == StoragePutResult.Conflict)
             {
@@ -114,7 +114,7 @@ public class PackageStorageService : IPackageStorageService
                 lowercasedId,
                 lowercasedNormalizedVersion,
                 iconPath);
-
+            iconStream.Seek(0, SeekOrigin.Begin);
             result = await _storage.PutAsync(iconPath, iconStream, IconContentType, cancellationToken);
             if (result == StoragePutResult.Conflict)
             {
@@ -205,14 +205,14 @@ public class PackageStorageService : IPackageStorageService
             PackagesPathPrefix,
             lowercasedId,
             lowercasedNormalizedVersion,
-            "readme");
+            "readme.md");
 
     private string IconPath(string lowercasedId, string lowercasedNormalizedVersion) =>
         Path.Combine(
             PackagesPathPrefix,
             lowercasedId,
             lowercasedNormalizedVersion,
-            "icon");
+            "icon.png");
 }
 
 

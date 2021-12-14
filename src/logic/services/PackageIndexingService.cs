@@ -1,5 +1,6 @@
 namespace core.services;
 
+using AutoMapper;
 using core.services.searchs;
 using Microsoft.Extensions.Options;
 using vein.project.shards;
@@ -12,6 +13,7 @@ public class PackageIndexingService : IPackageIndexingService
     private readonly SystemTime _time;
     private readonly IOptionsSnapshot<RegistryOptions> _options;
     private readonly ILogger<PackageIndexingService> _logger;
+    private readonly IMapper _mapper;
 
     public PackageIndexingService(
         IPackageService packages,
@@ -19,7 +21,8 @@ public class PackageIndexingService : IPackageIndexingService
         ISearchIndexer search,
         SystemTime time,
         IOptionsSnapshot<RegistryOptions> options,
-        ILogger<PackageIndexingService> logger)
+        ILogger<PackageIndexingService> logger,
+        IMapper mapper)
     {
         _packages = packages ?? throw new ArgumentNullException(nameof(packages));
         _storage = storage ?? throw new ArgumentNullException(nameof(storage));
@@ -27,9 +30,10 @@ public class PackageIndexingService : IPackageIndexingService
         _time = time ?? throw new ArgumentNullException(nameof(time));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _mapper = mapper;
     }
 
-    public async Task<PackageIndexingResult> IndexAsync(Stream packageStream, CancellationToken cancellationToken)
+    public async Task<PackageIndexingResult> IndexAsync(Stream packageStream, RegistryUser publisher, CancellationToken token = default)
     {
         var package = default(Package);
         var readmeStream = default(Stream);
@@ -38,23 +42,15 @@ public class PackageIndexingService : IPackageIndexingService
         try
         {
             var packageReader = await Shard.OpenAsync(packageStream, true);
-            package = Package.CreateFromManifest(await packageReader.GetManifestAsync());
+            var manifest = await packageReader.GetManifestAsync();
+            package = _mapper.Map<Package>(manifest);
             package.Published = _time.UtcNow;
-
-            //nuspecStream = await packageReader.GetNuspecAsync(cancellationToken);
-            //nuspecStream = await nuspecStream.AsTemporaryFileStreamAsync();
-
-            if (package.HasReadme)
-            {
-                readmeStream = await packageReader.GetReadmeAsync(cancellationToken);
-                readmeStream = await readmeStream.AsTemporaryFileStreamAsync();
-            }
-
+            package.Listed = true;
+            
+            if (package.HasEmbbededReadme)
+                readmeStream = await packageReader.GetReadmeAsync(token);
             if (package.HasEmbeddedIcon)
-            {
-                iconStream = await packageReader.GetIconAsync(cancellationToken);
-                iconStream = await iconStream.AsTemporaryFileStreamAsync();
-            }
+                iconStream = await packageReader.GetIconAsync(token);
         }
         catch (ShardPackageCorruptedException e)
         {
@@ -64,15 +60,15 @@ public class PackageIndexingService : IPackageIndexingService
         }
 
         // The package is well-formed. Ensure this is a new package.
-        if (await _packages.ExistsAsync(package.Name, package.Version, cancellationToken))
+        if (await _packages.ExistsAsync(package.Name, package.Version, token))
         {
             if (!_options.Value.AllowPackageOverwrites)
             {
                 return PackageIndexingResult.PackageAlreadyExists;
             }
 
-            await _packages.HardDeletePackageAsync(package.Name, package.Version, cancellationToken);
-            await _storage.DeleteAsync(package.Name, package.Version, cancellationToken);
+            await _packages.HardDeletePackageAsync(package.Name, package.Version, token);
+            await _storage.DeleteAsync(package.Name, package.Version, token);
         }
 
         // TODO: Add more package validations
@@ -91,7 +87,7 @@ public class PackageIndexingService : IPackageIndexingService
                 packageStream,
                 readmeStream,
                 iconStream,
-                cancellationToken);
+                token);
         }
         catch (Exception e)
         {
@@ -112,7 +108,7 @@ public class PackageIndexingService : IPackageIndexingService
             package.Name,
             package.NormalizedVersionString);
 
-        var result = await _packages.AddAsync(package, cancellationToken);
+        var result = await _packages.AddAsync(package, publisher, token);
         if (result == PackageAddResult.PackageAlreadyExists)
         {
             _logger.LogWarning(
@@ -121,6 +117,16 @@ public class PackageIndexingService : IPackageIndexingService
                 package.NormalizedVersionString);
 
             return PackageIndexingResult.PackageAlreadyExists;
+        }
+
+        if (result == PackageAddResult.AccessDenied)
+        {
+            _logger.LogWarning(
+                "Package {Id} {Version} owner and publisher is not matched ID in database",
+                package.Name,
+                package.NormalizedVersionString);
+
+            return PackageIndexingResult.AccessDenied;
         }
 
         if (result != PackageAddResult.Success)
@@ -135,7 +141,7 @@ public class PackageIndexingService : IPackageIndexingService
             package.Name,
             package.NormalizedVersionString);
 
-        await _search.IndexAsync(package, cancellationToken);
+        await _search.IndexAsync(package, token);
 
         _logger.LogInformation(
             "Successfully indexed package {Id} {Version} in search",
@@ -164,6 +170,11 @@ public enum PackageIndexingResult
     PackageAlreadyExists,
 
     /// <summary>
+    /// Access denied.
+    /// </summary>
+    AccessDenied,
+
+    /// <summary>
     /// The package has been indexed successfully.
     /// </summary>
     Success,
@@ -178,7 +189,9 @@ public interface IPackageIndexingService
     /// Attempt to index a new package.
     /// </summary>
     /// <param name="stream">The stream containing the package's content.</param>
+    /// <param name="publisher">A publisher user.</param>
     /// <param name="cancellationToken"></param>
     /// <returns>The result of the attempted indexing operation.</returns>
-    Task<PackageIndexingResult> IndexAsync(Stream stream, CancellationToken cancellationToken);
+    Task<PackageIndexingResult> IndexAsync(Stream packageStream, RegistryUser publisher,
+        CancellationToken token = default);
 }

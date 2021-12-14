@@ -14,28 +14,21 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
     private readonly IPackageService _packageService;
     private readonly FirestoreDb _operationBuilder;
     private readonly ILogger<FirebaseUserService> _logger;
+    private readonly IConfiguration _config;
 
-    public FirebaseUserService(IHttpContextAccessor ctx, IPackageService packageService, FirestoreDb operationBuilder, ILogger<FirebaseUserService> logger)
+    public FirebaseUserService(
+        IHttpContextAccessor ctx,
+        IPackageService packageService,
+        FirestoreDb operationBuilder,
+        ILogger<FirebaseUserService> logger,
+        IConfiguration config)
     {
         _ctx = ctx;
         _packageService = packageService;
         _operationBuilder = operationBuilder;
         _logger = logger;
+        _config = config;
     }
-
-    [Interceptor("Failed get api keys.")]
-    public async Task<IReadOnlyCollection<ApiKey>> GetApiKeysAsync()
-    {
-        var me = await GetMeAsync();
-
-        var list = await _operationBuilder.Collection("apiKeys")
-            .Document($"{me.UID}")
-            .Collection("$")
-            .GetSnapshotAsync();
-
-        return list.Select(x => x.ConvertTo<ApiKey>()).ToList().AsReadOnly();
-    }
-
     [Interceptor("Failed generate api key by '{0}' name. [eol: {1}]")]
     public async ValueTask<ApiKey> GenerateApiKeyAsync(string name, TimeSpan endOfLife)
     {
@@ -57,8 +50,33 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
         return apiKey;
     }
 
+    [Interceptor("Failed get api keys.")]
+    public async Task<IReadOnlyCollection<ApiKey>> GetApiKeysAsync()
+    {
+        var me = await GetMeAsync();
+
+        var list = await _operationBuilder.Collection("apiKeys")
+            .Document($"{me.UID}")
+            .Collection("$")
+            .GetSnapshotAsync();
+
+        return list.Select(x => x.ConvertTo<ApiKey>()).ToList().AsReadOnly();
+    }
+
+    [Interceptor("Failed remove api key.")]
+    public async Task DeleteApiKeyAsync(string uid)
+    {
+        var me = await GetMeAsync();
+
+        var list = await _operationBuilder.Collection("apiKeys")
+            .Document($"{me.UID}")
+            .Collection("$")
+            .Document(uid)
+            .DeleteAsync();
+    }
+
     [Interceptor("Failed get current user.")]
-    public async ValueTask<RegistryUser> GetMeAsync(CancellationToken cancellationToken = default)
+    public async ValueTask<RegistryUser> GetMeAsync(CancellationToken token = default)
     {
         var subKey = _ctx.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
 
@@ -68,7 +86,7 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
         var result = await _operationBuilder
             .Collection("users-refs")
             .Document(subKey.Value)
-            .GetSnapshotAsync(cancellationToken);
+            .GetSnapshotAsync(token);
 
         if (result.Exists)
         {
@@ -81,14 +99,14 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
             return (await _operationBuilder
                 .Collection("users")
                 .Document($"{link.InternalUID}")
-                .GetSnapshotAsync(cancellationToken))
+                .GetSnapshotAsync(token))
                 .ConvertTo<RegistryUser>();
         }
         
-
-        var userinfo = await "https://ivysola.us.auth0.com/userinfo"
+        
+        var userinfo = await $"{_config["Auth0:Authority"]}/userinfo"
             .WithHeader("Authorization", _ctx.HttpContext!.Request.Headers["Authorization"])
-            .GetJsonAsync<RegistryUser>(cancellationToken);
+            .GetJsonAsync<RegistryUser>(token);
 
 
         userinfo.UID = $"{Guid.NewGuid()}";
@@ -99,12 +117,12 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
         await _operationBuilder
             .Collection("users-refs")
             .Document(userLink.Sub)
-            .CreateAsync(userLink, cancellationToken);
+            .CreateAsync(userLink, token);
 
         await _operationBuilder
             .Collection("users")
             .Document($"{userLink.InternalUID}")
-            .CreateAsync(userinfo, cancellationToken);
+            .CreateAsync(userinfo, token);
 
         return userinfo;
     }
@@ -129,8 +147,10 @@ public interface IUserService
 
     public ValueTask<ApiKey> GenerateApiKeyAsync(string name, TimeSpan endOfLife);
 
+    public Task DeleteApiKeyAsync(string uid);
 
-    public ValueTask<RegistryUser> GetMeAsync(CancellationToken cancellationToken = default);
+
+    public ValueTask<RegistryUser> GetMeAsync(CancellationToken token = default);
 
     public ValueTask<IReadOnlyCollection<Package>> GetPackagesAsync(CancellationToken cancellationToken = default);
 

@@ -3,8 +3,10 @@ namespace core;
 using core.services;
 using core.services.searchs;
 using Google.Cloud.Firestore;
+using Google.Cloud.Firestore.V1;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using vein.project;
 
 public static class DependencyInjectionExtensions
 {
@@ -34,8 +36,26 @@ public static class DependencyInjectionExtensions
 
     private static void AddRegistryServices(this IServiceCollection services)
     {
+        services.AddAutoMapper(x => x.AddMaps(typeof(Mappers)));
+        services.AddSingleton(x =>
+        {
+            var converters = new ConverterRegistry();
+
+            converters.Add(new PackageAuthorConverter());
+            converters.Add(new GuidConverter());
+            converters.Add(new PackageUrlsConverter());
+            converters.Add(new PackageReferenceConverter());
+
+            return converters;
+        });
         services.AddProvider((provider, configuration)
-            => FirestoreDb.Create(configuration.GetDatabaseConnectionString()));
+            =>
+        {
+            var a = new FirestoreDbBuilder();
+            a.ConverterRegistry = provider.GetService<ConverterRegistry>();
+            a.ProjectId = configuration.GetDatabaseConnectionString();
+            return a.Build();
+        });
         services.AddSingleton(x => GetServiceFromProviders<FirestoreDb>(x));
 
         services.TryAddSingleton<NullSearchIndexer>();

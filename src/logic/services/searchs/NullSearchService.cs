@@ -23,14 +23,7 @@ public class NullSearchService : ISearchService
             TotalHits = 0,
             Data = new List<DependentResult>()
         });
-
-    private static readonly Task<SearchResponse> EmptySearchResponseTask =
-        Task.FromResult(new SearchResponse
-        {
-            TotalHits = 0,
-            Data = new List<SearchResult>()
-        });
-
+    
     public Task<AutocompleteResponse> AutocompleteAsync(
         AutocompleteRequest request,
         CancellationToken cancellationToken) =>
@@ -43,8 +36,8 @@ public class NullSearchService : ISearchService
 
     public Task<DependentsResponse> FindDependentsAsync(string packageId, CancellationToken cancellationToken) => EmptyDependentsResponseTask;
 
-    public Task<SearchResponse> SearchAsync(
+    public async Task<IReadOnlyList<Package>> SearchAsync(
         SearchRequest request,
         CancellationToken cancellationToken) =>
-        EmptySearchResponseTask;
+        new List<Package>().AsReadOnly();
 }

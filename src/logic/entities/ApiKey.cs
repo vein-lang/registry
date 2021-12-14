@@ -2,7 +2,9 @@ namespace core;
 
 using Google.Cloud.Firestore;
 using Newtonsoft.Json;
+using Org.BouncyCastle.Asn1.X509.Qualified;
 
+[FirestoreData]
 public class ApiKey
 {
     [FirestoreDocumentId, JsonProperty("uid")]
@@ -11,11 +13,22 @@ public class ApiKey
     [FirestoreProperty("owner"), JsonProperty]
     public string UserOwner { get; set; }
 
-    [FirestoreDocumentCreateTimestamp, JsonProperty]
+    [FirestoreDocumentCreateTimestamp, JsonProperty("creationDate")]
     public DateTimeOffset CreationDate { get; set; }
-    [FirestoreProperty("eol"), JsonProperty]
+
+    [FirestoreProperty("eol", ConverterType = typeof(TimeSpanConverter)), JsonProperty]
     public TimeSpan EndOfLife { get; set; }
 
-    [FirestoreProperty, JsonProperty]
+    [JsonProperty("expiresDate")]
+    public DateTimeOffset ExpiresDate => CreationDate + EndOfLife;
+
+    [FirestoreProperty, JsonProperty("name")]
     public string Name { get; set; }
+}
+
+
+public class TimeSpanConverter : IFirestoreConverter<TimeSpan>
+{
+    public TimeSpan FromFirestore(object value) => TimeSpan.Parse((string)value);
+    public object ToFirestore(TimeSpan value) => value.ToString("c");
 }

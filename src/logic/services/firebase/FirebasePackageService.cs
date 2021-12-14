@@ -1,10 +1,9 @@
 namespace core.services;
 
+using AutoMapper;
 using core.services.searchs;
 using Google.Cloud.Firestore;
-using Newtonsoft.Json;
 using NuGet.Versioning;
-using vein.project;
 
 /// <summary>
 /// Stores the metadata of packages using Azure Table Storage.
@@ -15,23 +14,33 @@ public partial class FirebasePackageService : IPackageService
 
     private readonly FireOperationBuilder _operationBuilder;
     private readonly ILogger<FirebasePackageService> _logger;
+    private readonly IMapper _mapper;
 
     public FirebasePackageService(
         FireOperationBuilder operationBuilder,
-        ILogger<FirebasePackageService> logger)
+        ILogger<FirebasePackageService> logger,
+        IMapper mapper)
     {
         _operationBuilder = operationBuilder ?? throw new ArgumentNullException(nameof(operationBuilder));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _mapper = mapper;
     }
 
-    public async Task<PackageAddResult> AddAsync(Package package, CancellationToken cancellationToken)
+    public async Task<PackageAddResult> AddAsync(Package package, RegistryUser owner, CancellationToken token = default)
     {
         try
         {
-            var operation = await _operationBuilder.AddPackage(package);
+            var operation = await this
+                ._operationBuilder
+                .AddPackage(package, owner);
+        }
+        catch (OwnerIsNotMatchException)
+        {
+            return PackageAddResult.AccessDenied;
         }
         catch (Exception e)
         {
+            this._logger.LogError(e, nameof(AddAsync));
             return PackageAddResult.PackageAlreadyExists;
         }
 
@@ -89,7 +98,7 @@ public partial class FirebasePackageService : IPackageService
 
         return packages
             .Select(x => x.ConvertTo<PackageEntity>())
-            .Select(AsPackage)
+            .Select(x => _mapper.Map<Package>(x))
             .OrderBy(x => x.Name)
             .ToList()
             .AsReadOnly();
@@ -107,7 +116,7 @@ public partial class FirebasePackageService : IPackageService
                 .WhereEqualTo("Listed", !includeUnlisted)
                 .Limit(500)
                 .GetSnapshotAsync(cancellationToken);
-        var a = filter.Select(x => x.ConvertTo<PackageEntity>()).Select(AsPackage).ToList();
+        var a = filter.Select(x => x.ConvertTo<PackageEntity>()).Select(x => _mapper.Map<Package>(x)).ToList();
 
 
         return a
@@ -129,8 +138,64 @@ public partial class FirebasePackageService : IPackageService
         if (!includeUnlisted && !entity.Listed)
             return null;
 
-        return AsPackage(entity);
+        return _mapper.Map<Package>(entity);
     }
+
+
+    public async Task<IReadOnlyCollection<string>> GetPopularPackagesAsync() =>
+        (await _operationBuilder.PackagesReference.ListDocumentsAsync()
+            .SelectAwait(async x => ((await x
+                    .Collection("v")
+                    .GetSnapshotAsync())
+                .Sum(x => x.GetValue<long>(nameof(PackageEntity.Downloads))), x.Id))
+            .OrderByDescending(x => x.Item1)
+            .Select(x => x.Id)
+            .Take(10)
+            .ToListAsync())
+        .AsReadOnly();
+
+    public async Task<IReadOnlyCollection<string>> GetLatestPackagesAsync() =>
+        (await _operationBuilder.PackagesReference
+            .ListDocumentsAsync()
+            .SelectAwait(async x => await x.GetSnapshotAsync())
+            .Where(x => x.UpdateTime is not null)
+            .Select(x => (x.UpdateTime, x.Id))
+            .OrderByDescending(x => x.UpdateTime!.Value.ToDateTimeOffset())
+            .Take(10)
+            .Select(x => x.Id)
+            .ToListAsync())
+        .AsReadOnly();
+
+    public async Task<ulong> GetPackagesCountAsync() => (ulong)
+        await _operationBuilder
+            .PackagesReference
+            .ListDocumentsAsync()
+            .CountAsync();
+
+    public async Task<List<Package>> GetLatestPackagesByUserAsync(RegistryUser user, CancellationToken token = default)
+    {
+        var snap = await _operationBuilder
+            .PackagesReference
+            .WhereEqualTo("owner", user.UID)
+            .OrderBy(FieldPath.DocumentId)
+            .Select("latest")
+            .GetSnapshotAsync();
+        
+        var r1 = snap
+            .ToList()
+            .Select(x => x.GetValue<DocumentReference>("latest"))
+            .Select(x => x.GetSnapshotAsync());
+        var r2 = await Task.WhenAll(r1);
+        var r3 = r2.Select(x => _mapper.Map<Package>(x.ConvertTo<PackageEntity>())).ToList();
+        return r3;
+    }
+
+    public async Task<ulong> GetTotalDownloadsAsync() => (ulong)await _operationBuilder
+        .PackagesReference
+        .ListDocumentsAsync()
+        .SelectAwait(async x => await x.GetSnapshotAsync())
+        .SumAsync(x => x.ContainsField("TotalDownloads") ? x.GetValue<long>("TotalDownloads") : 0l);
+
 
     public async Task<bool> HardDeletePackageAsync(string id, NuGetVersion version, CancellationToken cancellationToken)
         => await TryUpdatePackageAsync(x =>
@@ -160,45 +225,7 @@ public partial class FirebasePackageService : IPackageService
 
         return true;
     }
-
-    private Package AsPackage(PackageEntity entity) => new Package
-    {
-        Name = entity.Id,
-        NormalizedVersionString = entity.NormalizedVersion,
-        OriginalVersionString = entity.OriginalVersion,
-
-        Authors = JsonConvert.DeserializeObject<List<string>>(entity.Authors),
-        Description = entity.Description,
-        Downloads = entity.Downloads,
-        HasReadme = entity.HasReadme,
-        IsPreview = entity.IsPreview,
-        Listed = entity.Listed,
-        RequireLicenseAcceptance = entity.RequireLicenseAcceptance,
-        Icon = entity.IconUrl,
-        License = entity.License,
-        HomepageUrl = entity.ProjectUrl,
-        Repository = entity.RepositoryUrl,
-        //Tags = JsonConvert.DeserializeObject<string[]>(entity.Tags),
-        Dependencies = ParseDependencies(entity.Dependencies),
-        //PackageTypes = ParsePackageTypes(entity.PackageTypes),
-        //TargetFrameworks = targetFrameworks,
-    };
-
+    
     private Uri? ParseUri(string input) =>
         string.IsNullOrEmpty(input) ? null : new Uri(input);
-
-    private List<PackageReference> ParseDependencies(string input) =>
-        JsonConvert.DeserializeObject<List<PackageReference>>(input)
-            .ToList();
-
-    //private List<PackageType> ParsePackageTypes(string input)
-    //{
-    //    return JsonConvert.DeserializeObject<List<PackageTypeModel>>(input)
-    //        .Select(e => new PackageType
-    //        {
-    //            Name = e.Name,
-    //            Version = e.Version
-    //        })
-    //        .ToList();
-    //}
 }

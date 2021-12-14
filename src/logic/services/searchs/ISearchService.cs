@@ -15,7 +15,7 @@ public interface ISearchService
     /// <param name="request">The search request.</param>
     /// <param name="cancellationToken">A token to cancel the task.</param>
     /// <returns>The search response.</returns>
-    Task<SearchResponse> SearchAsync(SearchRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Package>> SearchAsync(SearchRequest request, CancellationToken cancellationToken);
 
     /// <summary>
     /// Perform an autocomplete query.

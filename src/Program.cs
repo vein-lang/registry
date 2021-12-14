@@ -39,6 +39,7 @@ builder.Services
     {
         x.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
         x.SerializerSettings.Formatting = Formatting.Indented;
+        x.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
     });
 builder.Services
     .AddRegistryApplication(x => { })

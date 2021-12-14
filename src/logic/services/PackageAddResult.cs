@@ -10,7 +10,10 @@ public enum PackageAddResult
     /// Failed to add the package as it already exists.
     /// </summary>
     PackageAlreadyExists,
-
+    /// <summary>
+    /// Failed to add the package as it owner UID and publisher UID is not matched.
+    /// </summary>
+    AccessDenied,
     /// <summary>
     /// The package was added successfully.
     /// </summary>

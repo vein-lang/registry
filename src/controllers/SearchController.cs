@@ -4,18 +4,41 @@ namespace core.controllers
     using core.services.searchs.models;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
+    using NuGet.Versioning;
+    using services;
 
     [AllowAnonymous]
     [ApiController]
     public class SearchController : Controller
     {
         private readonly ISearchService _searchService;
+        private readonly IPackageService _packageService;
+        private readonly IUrlGenerator _url;
 
-        public SearchController(ISearchService searchService)
-            => _searchService = searchService;
+        public SearchController(ISearchService searchService, IPackageService packageService, IUrlGenerator urlGenerator)
+        {
+            _searchService = searchService;
+            _packageService = packageService;
+            _url = urlGenerator;
+        }
+
+        [HttpGet("@/package/{name}/{version}")]
+        public async Task<ActionResult<Package>> FindByName(string name, string version, [FromQuery] bool includeUnlisted = false)
+        {
+            var result = await _packageService.FindOrNullAsync(name, NuGetVersion.Parse(version), includeUnlisted);
+
+            if (result == null)
+                return StatusCode(404);
+
+            result.Icon = result.HasEmbeddedIcon
+                ? _url.GetPackageIconDownloadUrl(result.Name, result.Version)
+                : result.Icon;
+
+            return Json(result);
+        }
 
         [HttpGet("@/search/index")]
-        public async Task<ActionResult<SearchResponse>> SearchAsync(
+        public async Task<ActionResult<IReadOnlyList<Package>>> SearchAsync(
             [FromQuery(Name = "q")] string? query = null,
             [FromQuery]int skip = 0,
             [FromQuery]int take = 20,
@@ -35,7 +58,7 @@ namespace core.controllers
                 Query = query ?? string.Empty,
             };
 
-            return await _searchService.SearchAsync(request, cancellationToken);
+            return Json(await _searchService.SearchAsync(request, cancellationToken));
         }
 
         [HttpGet("@/search/lint")]

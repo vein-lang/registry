@@ -1,20 +1,34 @@
 namespace core.services.searchs;
 
+using System.Diagnostics.CodeAnalysis;
+using AutoMapper;
 using core.services.searchs.models;
 using Google.Cloud.Firestore;
 using Newtonsoft.Json;
 using NuGet.Versioning;
 
+public class OwnerIsNotMatchException : Exception
+{
+
+}
+
 public class FireOperationBuilder
 {
+    private readonly FirestoreDb _firestore;
+    private readonly IMapper _mapper;
     public CollectionReference PackagesReference { get; private set; }
     public CollectionReference PackagesLinks { get; private set; }
 
-    public FireOperationBuilder(FirestoreDb firestore)
+    public FireOperationBuilder(FirestoreDb firestore, IMapper mapper)
     {
+        _firestore = firestore;
+        _mapper = mapper;
         PackagesReference = firestore.Collection("packages");
         PackagesLinks = firestore.Collection("packages-links");
     }
+
+    public DocumentReference Document(string path) => _firestore.Document(path);
+    public CollectionReference Collecton(string path) => _firestore.Collection(path);
 
     public async Task<PackageEntity?> Retrieve(string packageId, NuGetVersion packageVersion)
     {
@@ -29,49 +43,82 @@ public class FireOperationBuilder
         return result?.ConvertTo<PackageEntity>();
     }
 
-    public Task<WriteResult> AddPackage(Package package)
+    /// <summary>
+    /// Add package into db.
+    /// </summary>
+    /// <param name="package">A package.</param>
+    /// <param name="owner">A owner of package.</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="OwnerIsNotMatchException">Owner UID is not matched.</exception>
+    public async Task<WriteResult> AddPackage([NotNull] Package package, [NotNull] RegistryUser owner)
     {
         if (package == null) throw new ArgumentNullException(nameof(package));
+        if (owner == null) throw new ArgumentNullException(nameof(owner));
 
         var version = package.Version;
         var normalizedVersion = version.ToNormalizedString();
 
-        var entity = new PackageEntity
-        {
-            Id = package.Name,
-            NormalizedVersion = normalizedVersion,
-            OriginalVersion = version.ToFullString(),
-            Authors = JsonConvert.SerializeObject(package.Authors),
-            Description = package.Description,
-            Downloads = package.Downloads,
-            HasReadme = package.HasReadme,
-            IsPreview = package.IsPreview,
-            Listed = package.Listed,
-            RequireLicenseAcceptance = package.RequireLicenseAcceptance,
-            IconUrl = package.Icon,
-            License = package.License,
-            ProjectUrl = package.HomepageUrl,
-            RepositoryUrl = package.Repository,
-            Dependencies = SerializeList(package.Dependencies),
-            Published = package.Published
-        };
+        var entity = _mapper.Map<PackageEntity>(package);
+
+        var document = PackagesReference
+            .Document(entity.Id);
+
+        var snapshot = await document
+            .GetSnapshotAsync();
         
 
-        return PackagesReference
+        if (!snapshot.Exists)
+        {
+            var kv = new Dictionary<string, object>
+            {
+                { "owner", owner.UID }
+            };
+            await document.CreateAsync(kv);
+        }
+        else
+        {
+            if (!snapshot.GetValue<string>("owner").Equals(owner.UID, StringComparison.InvariantCultureIgnoreCase))
+                throw new OwnerIsNotMatchException();
+        }
+        
+
+        var result = await PackagesReference
             .Document(entity.Id)
             .Collection("v")
             .Document(normalizedVersion)
             .CreateAsync(entity);
+
+
+        var versions = await PackagesReference
+            .Document(entity.Id)
+            .Collection("v")
+            .ListDocumentsAsync()
+            .Where(x => NuGetVersion.TryParse(x.Id, out _))
+            .Select(x => ((DocumentReference path, NuGetVersion version))(x, NuGetVersion.Parse(x.Id)))
+            .ToListAsync();
+
+        var latestVersion = versions.OrderByDescending(x => x.version).First();
+
+        {
+            var kv = new Dictionary<string, object>
+            {
+                { "latest", latestVersion.path }
+            };
+
+            await document.UpdateAsync(kv);
+        }
+        return result;
     }
 
-    public async Task<bool> ExistAsync(string packageId, NuGetVersion packageVersion = null, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistAsync(string packageId, NuGetVersion? packageVersion = null, CancellationToken cancellationToken = default)
     {
         if (packageVersion is null)
         {
             var result = await PackagesReference
                     .Document(packageId).GetSnapshotAsync(cancellationToken);
 
-            return !(result is null) && result.Exists;
+            return result is not null && result.Exists;
         }
         else
         {
@@ -88,6 +135,19 @@ public class FireOperationBuilder
     {
         var normalizedVersion = packageVersion.ToNormalizedString();
         var package = await Retrieve(packageId, packageVersion);
+
+        var snapshot = await PackagesReference.Document(packageId).GetSnapshotAsync();
+
+        var totalDownloads = snapshot.ContainsField("TotalDownloads") ? snapshot.GetValue<ulong>("TotalDownloads") : 0ul;
+        
+        var kv = new Dictionary<string, object>
+        {
+            { "TotalDownloads", totalDownloads + 1 }
+        };
+
+        await PackagesReference
+            .Document(packageId)
+            .SetAsync(kv, SetOptions.MergeAll);
 
         return await PackagesReference
             .Document(packageId)
@@ -139,51 +199,6 @@ public class FireOperationBuilder
             .Document(normalizedVersion)
             .UpdateAsync("Listed", true);
     }
-
-    private static string SerializeList<TIn>(IList<TIn> objects)
-    {
-        var data = objects.ToList();
-
-        return JsonConvert.SerializeObject(data);
-    }
-}
-
-[FirestoreData]
-public class PackageEntity
-{
-    [FirestoreProperty]
-    public string NormalizedVersion { get; set; }
-    [FirestoreProperty]
-    public string Id { get; set; }
-    [FirestoreProperty]
-    public string OriginalVersion { get; set; }
-    [FirestoreProperty]
-    public string Authors { get; set; }
-    [FirestoreProperty]
-    public string Description { get; set; }
-    [FirestoreProperty]
-    public ulong Downloads { get; set; }
-    [FirestoreProperty]
-    public bool HasReadme { get; set; }
-    [FirestoreProperty]
-    public bool IsPreview { get; set; }
-    [FirestoreProperty]
-    public bool Listed { get; set; }
-    [FirestoreProperty]
-    public bool RequireLicenseAcceptance { get; set; }
-    [FirestoreProperty]
-    public string IconUrl { get; set; }
-    [FirestoreProperty]
-    public string License { get; set; }
-    [FirestoreProperty]
-    public Uri ProjectUrl { get; set; }
-    [FirestoreProperty]
-    public Uri RepositoryUrl { get; set; }
-    [FirestoreProperty]
-    public string Dependencies { get; set; }
-    public bool HasEmbeddedIcon => IconUrl?.StartsWith("@/") ?? false;
-    [FirestoreProperty]
-    public DateTimeOffset Published { get; set; }
 }
 
 public class FirestoreSearchService : ISearchService
@@ -197,14 +212,16 @@ public class FirestoreSearchService : ISearchService
 
     private readonly FireOperationBuilder _table;
     private readonly IUrlGenerator _url;
+    private readonly IMapper _mapper;
 
-    public FirestoreSearchService(FireOperationBuilder operationBuilder, IUrlGenerator url)
+    public FirestoreSearchService(FireOperationBuilder operationBuilder, IUrlGenerator url, IMapper mapper)
     {
         _table = operationBuilder ?? throw new ArgumentNullException(nameof(operationBuilder));
         _url = url;
+        _mapper = mapper;
     }
 
-    public async Task<SearchResponse> SearchAsync(
+    public async Task<IReadOnlyList<Package>> SearchAsync(
         SearchRequest request,
         CancellationToken cancellationToken)
     {
@@ -216,11 +233,7 @@ public class FirestoreSearchService : ISearchService
                 request.IncludeSemVer2,
                 cancellationToken);
 
-        return new SearchResponse
-        {
-            TotalHits = results.Count,
-            Data = results.Select(ToSearchResult).ToList()
-        };
+        return results.Select(ToSearchResult).ToList().AsReadOnly();
     }
 
     public async Task<AutocompleteResponse> AutocompleteAsync(
@@ -303,7 +316,7 @@ public class FirestoreSearchService : ISearchService
         return packages.Last().Id;
     }
 
-    private SearchResult ToSearchResult(IReadOnlyList<PackageEntity> packages)
+    private Package ToSearchResult(IReadOnlyList<PackageEntity> packages)
     {
         NuGetVersion latestVersion = null;
         PackageEntity latest = null;
@@ -333,21 +346,8 @@ public class FirestoreSearchService : ISearchService
                 ? _url.GetPackageIconDownloadUrl(latest.Id, latestVersion)
                 : latest.IconUrl;
 
-        return new SearchResult
-        {
-            PackageId = latest.Id,
-            Version = latest.NormalizedVersion,
-            Description = latest.Description,
-            Authors = JsonConvert.DeserializeObject<string[]>(latest.Authors),
-            IconUrl = iconUrl,
-            LicenseUrl = latest.License,
-            ProjectUrl = latest.ProjectUrl?.ToString(),
-            RegistrationIndexUrl = "_url.GetRegistrationIndexUrl(latest.Id)",
-            //Summary = latest.Summary,
-            //Tags = JsonConvert.DeserializeObject<string[]>(latest.Tags),
-            Title = latest.Id,
-            TotalDownloads = totalDownloads,
-            Versions = versions,
-        };
+        var result = _mapper.Map<Package>(latest);
+        result.Icon = iconUrl;
+        return result;
     }
 }
