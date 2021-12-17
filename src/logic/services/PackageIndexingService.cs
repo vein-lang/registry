@@ -51,6 +51,8 @@ public class PackageIndexingService : IPackageIndexingService
                 readmeStream = await packageReader.GetReadmeAsync(token);
             if (package.HasEmbeddedIcon)
                 iconStream = await packageReader.GetIconAsync(token);
+
+            await PackageValidator.ValidateAsync(packageReader);
         }
         catch (ShardPackageCorruptedException e)
         {
@@ -58,6 +60,45 @@ public class PackageIndexingService : IPackageIndexingService
 
             return PackageIndexingResult.InvalidPackage;
         }
+        
+
+        _logger.LogInformation(
+            "Persisted package {Id} {Version} content to storage, saving metadata to database...",
+            package.Name,
+            package.NormalizedVersionString);
+
+        var result = await _packages.AddAsync(package, publisher, token);
+        if (result == PackageAddResult.PackageAlreadyExists)
+        {
+            _logger.LogWarning(
+                "Package {Id} {Version} metadata already exists in database",
+                package.Name,
+                package.NormalizedVersionString);
+
+            return PackageIndexingResult.PackageAlreadyExists;
+        }
+
+        if (result == PackageAddResult.AccessDenied)
+        {
+            _logger.LogWarning(
+                "Package {Id} {Version} owner and publisher is not matched ID in database",
+                package.Name,
+                package.NormalizedVersionString);
+
+            return PackageIndexingResult.AccessDenied;
+        }
+
+        if (result != PackageAddResult.Success)
+        {
+            _logger.LogError($"Unknown {nameof(PackageAddResult)} value: {{PackageAddResult}}", result);
+
+            throw new InvalidOperationException($"Unknown {nameof(PackageAddResult)} value: {result}");
+        }
+
+        _logger.LogInformation(
+            "Successfully persisted package {Id} {Version} metadata to database. Indexing in search...",
+            package.Name,
+            package.NormalizedVersionString);
 
         // The package is well-formed. Ensure this is a new package.
         if (await _packages.ExistsAsync(package.Name, package.Version, token))
@@ -102,45 +143,7 @@ public class PackageIndexingService : IPackageIndexingService
 
             throw;
         }
-
-        _logger.LogInformation(
-            "Persisted package {Id} {Version} content to storage, saving metadata to database...",
-            package.Name,
-            package.NormalizedVersionString);
-
-        var result = await _packages.AddAsync(package, publisher, token);
-        if (result == PackageAddResult.PackageAlreadyExists)
-        {
-            _logger.LogWarning(
-                "Package {Id} {Version} metadata already exists in database",
-                package.Name,
-                package.NormalizedVersionString);
-
-            return PackageIndexingResult.PackageAlreadyExists;
-        }
-
-        if (result == PackageAddResult.AccessDenied)
-        {
-            _logger.LogWarning(
-                "Package {Id} {Version} owner and publisher is not matched ID in database",
-                package.Name,
-                package.NormalizedVersionString);
-
-            return PackageIndexingResult.AccessDenied;
-        }
-
-        if (result != PackageAddResult.Success)
-        {
-            _logger.LogError($"Unknown {nameof(PackageAddResult)} value: {{PackageAddResult}}", result);
-
-            throw new InvalidOperationException($"Unknown {nameof(PackageAddResult)} value: {result}");
-        }
-
-        _logger.LogInformation(
-            "Successfully persisted package {Id} {Version} metadata to database. Indexing in search...",
-            package.Name,
-            package.NormalizedVersionString);
-
+        
         await _search.IndexAsync(package, token);
 
         _logger.LogInformation(

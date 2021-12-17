@@ -37,9 +37,10 @@ public class PackageEntity
     public PackageUrls Urls { get;set; }
     [FirestoreProperty]
     public List<PackageReference> Dependencies { get; set; }
-    
     [FirestoreProperty]
     public DateTimeOffset Published { get; set; }
+    [FirestoreProperty]
+    public bool IsVerified { get; set; }
 }
 
 

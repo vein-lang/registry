@@ -21,4 +21,7 @@ public record Package : PackageManifest
     
     [JsonProperty("published")]
     public DateTimeOffset Published { get; set; }
+
+    [JsonProperty("isVerified")]
+    public bool IsVerified { get; set; }
 }

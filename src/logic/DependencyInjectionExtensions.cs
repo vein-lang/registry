@@ -64,7 +64,9 @@ public static class DependencyInjectionExtensions
         services.TryAddSingleton<NullPackageService>();
         //services.TryAddSingleton<RegistrationBuilder>();
         services.TryAddSingleton<SystemTime>();
+        services.TryAddSingleton<ImageDomainValidator>();
         services.TryAddSingleton<ValidateStartupOptions>();
+        services.TryAddSingleton<MarkdownService>();
         services.TryAddScoped<IUrlGenerator, RegistryUrlGenerator>();
 
         //services.TryAddSingleton(HttpClientFactory);

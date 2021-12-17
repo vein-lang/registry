@@ -58,10 +58,25 @@ public class PackagePublishController : Controller
                 }
             }
         }
+        catch (PackageValidatorException e)
+        {
+            _logger.LogError(e, "Exception thrown during package validation");
+            HttpContext.Response.StatusCode = 400;
+            await HttpContext.Response.WriteAsJsonAsync(new
+            {
+                message = e.Message,
+                traceId = HttpContext.Request.Headers["traceparent"].ToString()
+            });
+        }
         catch (Exception e)
         {
             _logger.LogError(e, "Exception thrown during package upload");
-
+            
+            await HttpContext.Response.WriteAsJsonAsync(new
+            {
+                message = $"Exception thrown during package upload.",
+                traceId = HttpContext.Request.Headers["traceparent"].ToString()
+            });
             HttpContext.Response.StatusCode = 500;
         }
     }

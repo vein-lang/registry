@@ -66,10 +66,18 @@ public class FireOperationBuilder
 
         var snapshot = await document
             .GetSnapshotAsync();
+
+        var verified = false;
         
 
         if (!snapshot.Exists)
         {
+            if (PackageValidator.IsReservedName(package))
+                throw new PackageValidatorException(
+                    $"Name '{package.Name}' has been reserved.\n " +
+                    $"If you want to use a reserved package name, please create an issue in " +
+                    $"https://github.com/vein-lang/registry");
+
             var kv = new Dictionary<string, object>
             {
                 { "owner", owner.UID }
@@ -80,8 +88,12 @@ public class FireOperationBuilder
         {
             if (!snapshot.GetValue<string>("owner").Equals(owner.UID, StringComparison.InvariantCultureIgnoreCase))
                 throw new OwnerIsNotMatchException();
+            if (snapshot.ContainsField("verified"))
+                verified = snapshot.GetValue<bool>("verified");
         }
-        
+
+
+        entity.IsVerified = verified;
 
         var result = await PackagesReference
             .Document(entity.Id)
