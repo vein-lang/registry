@@ -24,7 +24,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         submodules: true
-    - run: git fetch --prune --unshallow --tags --recurse-submodules-default=yes
+    - run: git fetch --all --prune --unshallow --tags --recurse-submodules-default=yes
     - uses: google-github-actions/setup-gcloud@master
       with:
         service_account_email: ${{ secrets.GKE_EMAIL }}
