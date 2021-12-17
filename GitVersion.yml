@@ -1,8 +1,0 @@
-mode: Mainline
-assembly-file-versioning-format: '{Major}.{Minor}.{Patch}.{CommitsSinceVersionSource}'
-assembly-informational-format: '{Major}.{Minor}.{Patch}.{CommitsSinceVersionSource}-{BranchName}+{ShortSha}'
-merge-message-formats: {}
-commit-message-incrementing: Enabled
-patch-version-bump-message: "^(add|bump|drop|mv|improvement|fix|refactor)(.+)?"
-tag-prefix: 'IGNORE'
-next-version: 0.1
