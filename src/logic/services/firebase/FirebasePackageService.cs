@@ -3,6 +3,7 @@ namespace core.services;
 using AutoMapper;
 using core.services.searchs;
 using Google.Cloud.Firestore;
+using MoreLinq;
 using NuGet.Versioning;
 
 /// <summary>
@@ -15,15 +16,18 @@ public partial class FirebasePackageService : IPackageService
     private readonly FireOperationBuilder _operationBuilder;
     private readonly ILogger<FirebasePackageService> _logger;
     private readonly IMapper _mapper;
+    private readonly IUrlGenerator _urlGenerator;
 
     public FirebasePackageService(
         FireOperationBuilder operationBuilder,
         ILogger<FirebasePackageService> logger,
-        IMapper mapper)
+        IMapper mapper,
+        IUrlGenerator urlGenerator)
     {
         _operationBuilder = operationBuilder ?? throw new ArgumentNullException(nameof(operationBuilder));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _mapper = mapper;
+        _urlGenerator = urlGenerator;
     }
 
     public async Task<PackageAddResult> AddAsync(Package package, RegistryUser owner, CancellationToken token = default)
@@ -186,7 +190,10 @@ public partial class FirebasePackageService : IPackageService
             .Select(x => x.GetValue<DocumentReference>("latest"))
             .Select(x => x.GetSnapshotAsync());
         var r2 = await Task.WhenAll(r1);
-        var r3 = r2.Select(x => _mapper.Map<Package>(x.ConvertTo<PackageEntity>())).ToList();
+        var r3 = r2
+            .Select(x => _mapper.Map<Package>(x.ConvertTo<PackageEntity>()))
+            .Pipe(x => x.Icon = x.HasEmbeddedIcon ? _urlGenerator.GetPackageIconDownloadUrl(x.Name, x.Version) : x.Icon)
+            .ToList();
         return r3;
     }
 
