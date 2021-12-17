@@ -60,7 +60,19 @@ public class PackageIndexingService : IPackageIndexingService
 
             return PackageIndexingResult.InvalidPackage;
         }
-        
+
+
+        // The package is well-formed. Ensure this is a new package.
+        if (await _packages.ExistsAsync(package.Name, package.Version, token))
+        {
+            if (!_options.Value.AllowPackageOverwrites)
+            {
+                return PackageIndexingResult.PackageAlreadyExists;
+            }
+
+            await _packages.HardDeletePackageAsync(package.Name, package.Version, token);
+            await _storage.DeleteAsync(package.Name, package.Version, token);
+        }
 
         _logger.LogInformation(
             "Persisted package {Id} {Version} content to storage, saving metadata to database...",
@@ -99,19 +111,7 @@ public class PackageIndexingService : IPackageIndexingService
             "Successfully persisted package {Id} {Version} metadata to database. Indexing in search...",
             package.Name,
             package.NormalizedVersionString);
-
-        // The package is well-formed. Ensure this is a new package.
-        if (await _packages.ExistsAsync(package.Name, package.Version, token))
-        {
-            if (!_options.Value.AllowPackageOverwrites)
-            {
-                return PackageIndexingResult.PackageAlreadyExists;
-            }
-
-            await _packages.HardDeletePackageAsync(package.Name, package.Version, token);
-            await _storage.DeleteAsync(package.Name, package.Version, token);
-        }
-
+        
         // TODO: Add more package validations
         // TODO: Call PackageArchiveReader.ValidatePackageEntriesAsync
         _logger.LogInformation(

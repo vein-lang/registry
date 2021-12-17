@@ -12,9 +12,11 @@ builder.WebHost
     .UseUrls($"http://*.*.*.*:{Environment.GetEnvironmentVariable("PORT") ?? "8080"}");
 builder.WebHost.UseSentry(o =>
 {
-    o.Dsn = Environment.GetEnvironmentVariable("VEIN_SENTRY_DNS");
+    o.Dsn = Environment.GetEnvironmentVariable("VEIN_SENTRY_DNS") ?? "";
     o.TracesSampleRate = 1.0;
+    o.IsGlobalModeEnabled = Environment.GetEnvironmentVariable("VEIN_SENTRY_DNS") is not null;
 });
+
 
 builder.Services.AddTransient(DependencyInjectionExtensions.GetServiceFromProviders<IStorageService>);
 builder.Services.AddTransient(DependencyInjectionExtensions.GetServiceFromProviders<IPackageService>);
