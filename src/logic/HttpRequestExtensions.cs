@@ -10,17 +10,13 @@ public static class HttpRequestExtensions
         try
         {
             if (request.HasFormContentType && request.Form.Files.Count > 0)
-            {
                 rawUploadStream = request.Form.Files[0].OpenReadStream();
-            }
             else
-            {
                 rawUploadStream = request.Body;
-            }
 
-            // Convert the upload stream into a temporary file stream to
-            // minimize memory usage.
-            return await rawUploadStream?.AsTemporaryFileStreamAsync(cancellationToken);
+            var mem = new MemoryStream(); // temporary files is not work in docker, use memory
+            await rawUploadStream.CopyToAsync(mem, cancellationToken);
+            return mem;
         }
         finally
         {

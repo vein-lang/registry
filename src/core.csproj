@@ -32,6 +32,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
     <PackageReference Include="Profanity.Detector" Version="0.1.8" />
+    <PackageReference Include="Sentry.AspNetCore" Version="3.12.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\vein-lang\lib\projectsystem\vein.project.csproj" />

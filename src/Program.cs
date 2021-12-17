@@ -10,8 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost
     .UseUrls($"http://*.*.*.*:{Environment.GetEnvironmentVariable("PORT") ?? "8080"}");
-
-//builder.Services.AddTransient<IValidateOptions<RegistryOptions>, ConfigureRegistryOptions>();
+builder.WebHost.UseSentry(o =>
+{
+    o.Dsn = Environment.GetEnvironmentVariable("VEIN_SENTRY_DNS");
+    o.TracesSampleRate = 1.0;
+});
 
 builder.Services.AddTransient(DependencyInjectionExtensions.GetServiceFromProviders<IStorageService>);
 builder.Services.AddTransient(DependencyInjectionExtensions.GetServiceFromProviders<IPackageService>);
@@ -33,6 +36,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+
 builder.Services
     .AddControllers()
     .AddNewtonsoftJson(x =>
@@ -45,6 +49,8 @@ builder.Services
     .AddRegistryApplication(x => { })
     .AddHttpContextAccessor()
     .AddHealthChecks();
+
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: "localhost",
