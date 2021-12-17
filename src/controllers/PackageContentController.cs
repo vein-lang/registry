@@ -10,9 +10,10 @@ using services;
 public class PackageContentController : Controller
 {
     private readonly IPackageContentService _content;
+    private readonly MarkdownService _markdownService;
 
-    public PackageContentController(IPackageContentService content)
-        => _content = content;
+    public PackageContentController(IPackageContentService content, MarkdownService markdownService)
+        => (_content, _markdownService) = (content, markdownService);
 
     [HttpGet("@/packages/{id}/version.json")]
     public async Task<ActionResult<PackageVersionsResponse>> GetPackageVersionsAsync(string id, CancellationToken cancellationToken)
@@ -59,7 +60,11 @@ public class PackageContentController : Controller
         if (readmeStream == null)
             return NotFound();
 
-        return File(readmeStream, "text/markdown");
+        using var reader = new StreamReader(readmeStream);
+
+        var result = await reader.ReadToEndAsync();
+        
+        return Content(_markdownService.GetHtmlFromMarkdown(result).Content, "text/html");
     }
 
     [HttpGet("@/packages/{id}/{version}/icon")]
