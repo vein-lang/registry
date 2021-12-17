@@ -1,7 +1,6 @@
 namespace core.services;
 
 using core.controllers;
-using static GitVersionInformation;
 
 /// <summary>
 /// The NuGet Service Index service, used to discover other resources.
@@ -41,8 +40,6 @@ public class RegistryServiceIndex : IServiceIndexService
 
         var result = new ServiceIndexResponse
         {
-            Version = AssemblySemFileVer,
-            FullVersion = $"{AssemblySemFileVer}-{BranchName}+{ShortSha}",
             Resources = resources,
         };
 
