@@ -22,7 +22,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      with:
+        submodules: true
+    - run: git fetch --prune --unshallow --tags
+    - uses: google-github-actions/setup-gcloud@master
       with:
         service_account_email: ${{ secrets.GKE_EMAIL }}
         service_account_key: ${{ secrets.GKE_KEY }}
