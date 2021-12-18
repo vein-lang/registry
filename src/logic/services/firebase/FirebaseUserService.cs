@@ -42,8 +42,6 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
         apiKey.UID = $"{Guid.NewGuid()}";
 
         await _operationBuilder.Collection("apiKeys")
-            .Document($"{me.UID}")
-            .Collection("$")
             .Document($"{apiKey.UID}")
             .CreateAsync(apiKey);
 
@@ -56,9 +54,10 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
         var me = await GetMeAsync();
 
         var list = await _operationBuilder.Collection("apiKeys")
-            .Document($"{me.UID}")
-            .Collection("$")
-            .GetSnapshotAsync();
+            .ListDocumentsAsync()
+            .SelectAwait(async x => await x.GetSnapshotAsync())
+            .Where(x => x.GetValue<string>("owner").Equals(me.UID))
+            .ToListAsync();
 
         return list.Select(x => x.ConvertTo<ApiKey>()).ToList().AsReadOnly();
     }
@@ -68,17 +67,32 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
     {
         var me = await GetMeAsync();
 
-        var list = await _operationBuilder.Collection("apiKeys")
-            .Document($"{me.UID}")
-            .Collection("$")
+        await _operationBuilder.Collection("apiKeys")
             .Document(uid)
             .DeleteAsync();
     }
 
     [Interceptor("Failed get current user.")]
-    public async ValueTask<RegistryUser> GetMeAsync(CancellationToken token = default)
+    public async ValueTask<RegistryUser?> GetMeAsync(CancellationToken token = default)
     {
-        var subKey = _ctx.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
+        var subKey = _ctx.HttpContext!.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
+        var apiKey = (string)_ctx.HttpContext.Request.Headers["X-VEIN-API-KEY"];
+
+        if (apiKey is not null)
+        {
+            var keyData = await _operationBuilder.Collection("apiKeys")
+                .ListDocumentsAsync()
+                .FirstOrDefaultAsync(x => x.Id.Equals(apiKey));
+
+            if (keyData is null)
+                return null;
+            var val = (await keyData.GetSnapshotAsync()).ConvertTo<ApiKey>();
+            return (await _operationBuilder
+                    .Collection("users")
+                    .Document($"{val.UserOwner}")
+                    .GetSnapshotAsync(token))
+                .ConvertTo<RegistryUser>();
+        }
 
         if (subKey is null)
             throw new AuthenticationException("Sub key is not preset");
@@ -148,7 +162,6 @@ public interface IUserService
     public ValueTask<ApiKey> GenerateApiKeyAsync(string name, TimeSpan endOfLife);
 
     public Task DeleteApiKeyAsync(string uid);
-
 
     public ValueTask<RegistryUser> GetMeAsync(CancellationToken token = default);
 

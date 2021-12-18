@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Sentry;
 
-[Route("@/publish"), Authorize]
+[Route("@/publish"), ApiKeyAuth]
 [ApiController]
 public class PackagePublishController : Controller
 {
