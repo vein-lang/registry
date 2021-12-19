@@ -52,7 +52,7 @@ public class PackageIndexingService : IPackageIndexingService
             if (package.HasEmbeddedIcon)
                 iconStream = await packageReader.GetIconAsync(token);
 
-            await PackageValidator.ValidateAsync(packageReader);
+            await PackageValidator.ValidateExistAsync(packageReader);
         }
         catch (ShardPackageCorruptedException e)
         {

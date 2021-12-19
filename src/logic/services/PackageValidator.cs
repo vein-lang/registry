@@ -15,13 +15,13 @@ public class PackageValidator
         "com3", "com4", "com5",
         "com6","com7", "com8", "com9",
         "builtins", "collections",
-        "debug", "std", "test",
+        "debug", "std", "test", "bump",
         "nul", "null", "prn", "aux",
         "vin", "http", "grpc", "logger",
         "core", "kernel", "live", "docker"
     };
 
-    public static async Task ValidateAsync(Shard shard)
+    public static async Task ValidateExistAsync(Shard shard)
     {
         if (shard.Description?.Length > 70)
             throw new PackageValidatorException($"{nameof(Shard.Description)} is more 70 symbols.");
@@ -37,7 +37,18 @@ public class PackageValidator
 
         if (_censor.ContainsProfanity(shard.Description))
             throw new PackageValidatorException($"{nameof(Shard.Description)} is contained banned words.");
-        if (_censor.ContainsProfanity(shard.Name))
+        
+    }
+
+
+    public static void ValidateNewPackage(Package package)
+    {
+        if (IsReservedName(package))
+            throw new PackageValidatorException(
+                $"Name '{package.Name}' has been reserved.\n " +
+                $"If you want to use a reserved package name, please create an issue in " +
+                $"https://github.com/vein-lang/registry");
+        if (_censor.ContainsProfanity(package.Name))
             throw new PackageValidatorException($"{nameof(Shard.Name)} is contained banned words.");
     }
 
