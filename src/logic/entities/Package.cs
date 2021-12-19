@@ -24,4 +24,10 @@ public record Package : PackageManifest
 
     [JsonProperty("isVerified")]
     public bool IsVerified { get; set; }
+
+    [JsonProperty("hasMetapackage")]
+    public bool HasMetapackage { get; set; }
+
+    [JsonProperty("hasServicedPackage")]
+    public bool HasServicedPackage { get; set; }
 }

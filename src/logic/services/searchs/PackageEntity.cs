@@ -1,7 +1,6 @@
 namespace core.services.searchs;
 
 using Google.Cloud.Firestore;
-using Newtonsoft.Json;
 using vein.project;
 
 [FirestoreData]
@@ -41,6 +40,10 @@ public class PackageEntity
     public DateTimeOffset Published { get; set; }
     [FirestoreProperty]
     public bool IsVerified { get; set; }
+    [FirestoreProperty]
+    public bool HasMetapackage { get; set; }
+    [FirestoreProperty]
+    public bool HasServicedPackage { get; set; }
 }
 
 
