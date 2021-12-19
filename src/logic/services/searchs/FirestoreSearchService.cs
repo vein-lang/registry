@@ -68,6 +68,7 @@ public class FireOperationBuilder
             .GetSnapshotAsync();
 
         var verified = false;
+        var isServiced = false;
         
 
         if (!snapshot.Exists)
@@ -86,10 +87,13 @@ public class FireOperationBuilder
                 throw new OwnerIsNotMatchException();
             if (snapshot.ContainsField("IsVerified"))
                 verified = snapshot.GetValue<bool>("IsVerified");
+            if (snapshot.ContainsField("IsServiced"))
+                isServiced = snapshot.GetValue<bool>("IsServiced");
         }
 
 
         entity.IsVerified = verified;
+        entity.HasServicedPackage = isServiced;
 
         var result = await PackagesReference
             .Document(entity.Id)
