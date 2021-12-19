@@ -1,4 +1,5 @@
 using core;
+using core.profanity;
 using core.services;
 using core.services.searchs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -16,7 +17,6 @@ builder.WebHost.UseSentry(o =>
     o.TracesSampleRate = 1.0;
     o.IsGlobalModeEnabled = Environment.GetEnvironmentVariable("VEIN_SENTRY_DNS") is not null;
 });
-
 
 builder.Services.AddTransient(DependencyInjectionExtensions.GetServiceFromProviders<IStorageService>);
 builder.Services.AddTransient(DependencyInjectionExtensions.GetServiceFromProviders<IPackageService>);

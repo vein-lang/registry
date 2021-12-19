@@ -1,13 +1,13 @@
 namespace core.services;
 
-using ProfanityFilter;
+using core.profanity;
 using vein.project.shards;
 
 public class PackageValidator
 {
     private const long MaxAllowedIconLengthForUploading = 1024 * 1024; // 1 MB
     private const long MaxAllowedContentForUploading = 1024 * 1024 * 300; // 300 MB
-    private static ProfanityFilter _censor = new ();
+    private static Profanity _censor = new ("./content");
 
     private static readonly List<string> Reserved = new()
     {
@@ -20,7 +20,7 @@ public class PackageValidator
         "vin", "http", "grpc", "logger",
         "core", "kernel", "live", "docker"
     };
-
+    
     public static async Task ValidateExistAsync(Shard shard)
     {
         if (shard.Description?.Length > 70)
