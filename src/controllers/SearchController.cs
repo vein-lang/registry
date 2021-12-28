@@ -25,7 +25,14 @@ namespace core.controllers
         [HttpGet("@/package/{name}/{version}")]
         public async Task<ActionResult<Package>> FindByName(string name, string version, [FromQuery] bool includeUnlisted = false)
         {
-            var result = await _packageService.FindOrNullAsync(name, NuGetVersion.Parse(version), includeUnlisted);
+            var ver = version switch
+            {
+                "latest" or null => new (0, 0, 0, 0, "", "latest"),
+                "next"           => new (0, 0, 0, 0, "", "next"),
+                not null         => NuGetVersion.Parse(version)
+            };
+
+            var result = await _packageService.FindOrNullAsync(name, ver, includeUnlisted);
 
             if (result == null)
                 return StatusCode(404);

@@ -34,12 +34,29 @@ public class FireOperationBuilder
     {
         if (packageId == null) throw new ArgumentNullException(nameof(packageId));
         if (packageVersion == null) throw new ArgumentNullException(nameof(packageVersion));
-
-        var result = await PackagesReference
+        
+        var packageRoot = await PackagesReference
+            .Document(packageId)
+            .GetSnapshotAsync();
+        
+        var result = packageVersion switch
+        {
+            { Metadata: "next" } when packageRoot.ContainsField("next") => await packageRoot
+                .GetValue<DocumentReference>("next")
+                .GetSnapshotAsync(),
+            { Metadata: "next" } when !packageRoot.ContainsField("next") => await packageRoot
+                .GetValue<DocumentReference>("latest")
+                .GetSnapshotAsync(),
+            { Metadata: "latest" } => await packageRoot
+                .GetValue<DocumentReference>("latest")
+                .GetSnapshotAsync(),
+            { } => await PackagesReference
                 .Document(packageId)
                 .Collection("v")
                 .Document(packageVersion.ToNormalizedString())
-                .GetSnapshotAsync();
+                .GetSnapshotAsync(),
+            null => null
+        };
         return result?.ConvertTo<PackageEntity>();
     }
 
@@ -110,12 +127,16 @@ public class FireOperationBuilder
             .Select(x => ((DocumentReference path, NuGetVersion version))(x, NuGetVersion.Parse(x.Id)))
             .ToListAsync();
 
-        var latestVersion = versions.OrderByDescending(x => x.version).First();
+        var latestVersion = versions.OrderByDescending(x => x.version).Where(x => !x.version.IsPrerelease).First();
+        var nextVersion = versions.OrderByDescending(x => x.version).Where(x => x.version.IsPrerelease).First();
+
+        nextVersion = nextVersion.version >= latestVersion.version ? nextVersion : latestVersion;
 
         {
             var kv = new Dictionary<string, object>
             {
-                { "latest", latestVersion.path }
+                { "latest", latestVersion.path },
+                { "next", nextVersion.path }
             };
 
             await document.UpdateAsync(kv);
