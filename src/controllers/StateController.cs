@@ -1,39 +1,46 @@
 namespace core.controllers;
 
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using services;
 using services.searchs;
 
 [ApiController]
 public class StateController : Controller
 {
-    private readonly FireOperationBuilder _builder;
     private readonly IPackageService _packageService;
-
-    public StateController(FireOperationBuilder builder, IPackageService packageService)
+    private readonly IMemoryCache _cache;
+    public StateController(IPackageService packageService, IMemoryCache cache)
     {
-        _builder = builder;
         _packageService = packageService;
+        _cache = cache;
     }
 
     [HttpGet("@/state")]
     public async Task<IActionResult> GetState()
     {
+        if (_cache.TryGetValue("@/state", out PackagesState state))
+            return Json(state);
         var latest = await _packageService.GetLatestPackagesAsync();
         var count = await _packageService.GetPackagesCountAsync();
         var downloads = await _packageService.GetTotalDownloadsAsync();
         var popular = await _packageService.GetPopularPackagesAsync();
 
-        return Json(new PackagesState()
+
+        var result = new PackagesState()
         {
             latest_packages = latest,
             packages_state = new List<AnalyticsKeyValue>()
             {
-                { new ("Package downloads", downloads) },
-                { new ("Package total", count) },
+                { new("Package downloads", downloads) },
+                { new("Package total", count) },
             },
             popular_packages = popular
-        });
+        };
+
+        _cache.Set("@/state", result, TimeSpan.FromHours(12));
+
+        return Json(result);
     }
 }
 

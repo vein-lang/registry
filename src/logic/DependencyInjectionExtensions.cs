@@ -3,7 +3,7 @@ namespace core;
 using core.services;
 using core.services.searchs;
 using Google.Cloud.Firestore;
-using Google.Cloud.Firestore.V1;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using vein.project;
@@ -68,7 +68,7 @@ public static class DependencyInjectionExtensions
         services.TryAddSingleton<ValidateStartupOptions>();
         services.TryAddSingleton<MarkdownService>();
         services.TryAddScoped<IUrlGenerator, RegistryUrlGenerator>();
-
+        services.AddMemoryCache();
         //services.TryAddSingleton(HttpClientFactory);
         //services.TryAddSingleton(NuGetClientFactoryFactory);
 

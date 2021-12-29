@@ -2,6 +2,7 @@ namespace core.controllers;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using NuGet.Versioning;
 using services;
 
@@ -11,17 +12,24 @@ public class PackageContentController : Controller
 {
     private readonly IPackageContentService _content;
     private readonly MarkdownService _markdownService;
+    private readonly IMemoryCache _cache;
 
-    public PackageContentController(IPackageContentService content, MarkdownService markdownService)
-        => (_content, _markdownService) = (content, markdownService);
+    public PackageContentController(IPackageContentService content, MarkdownService markdownService, IMemoryCache cache)
+        => (_content, _markdownService, _cache) = (content, markdownService, cache);
 
     [HttpGet("@/packages/{id}/version.json")]
     public async Task<ActionResult<PackageVersionsResponse>> GetPackageVersionsAsync(string id, CancellationToken cancellationToken)
     {
+        if (_cache.TryGetValue($"@/packages/{id}/version.json", out PackageVersionsResponse resut))
+            return Json(resut);
+
         var versions = await _content.GetPackageVersionsOrNullAsync(id, cancellationToken);
         if (versions == null)
             return NotFound();
-        return versions;
+
+        _cache.Set($"@/packages/{id}/version.json", versions, TimeSpan.FromMinutes(15));
+
+        return Json(versions);
     }
 
     [HttpGet("@/packages/{id}/{version}")]
@@ -61,6 +69,8 @@ public class PackageContentController : Controller
     [HttpGet("@/packages/{id}/{version}/readme")]
     public async Task<IActionResult> DownloadReadmeAsync(string id, string version, CancellationToken cancellationToken)
     {
+        if (_cache.TryGetValue($"@/packages/{id}/{version}/readme", out string md))
+            return Content(_markdownService.GetHtmlFromMarkdown(md).Content, "text/html");
         var ver = version switch
         {
             "latest" or null => new (0, 0, 0, 0, "", "latest"),
@@ -75,6 +85,9 @@ public class PackageContentController : Controller
         using var reader = new StreamReader(readmeStream);
 
         var result = await reader.ReadToEndAsync();
+
+        _cache.Set($"@/packages/{id}/{version}/readme", result,
+            ver.HasMetadata ? TimeSpan.FromMinutes(15) : TimeSpan.FromHours(6));
         
         return Content(_markdownService.GetHtmlFromMarkdown(result).Content, "text/html");
     }

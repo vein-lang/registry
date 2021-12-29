@@ -4,6 +4,7 @@ namespace core.controllers
     using core.services.searchs.models;
     using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Extensions.Caching.Memory;
     using NuGet.Versioning;
     using services;
 
@@ -14,17 +15,23 @@ namespace core.controllers
         private readonly ISearchService _searchService;
         private readonly IPackageService _packageService;
         private readonly IUrlGenerator _url;
+        private readonly IMemoryCache _cache;
 
-        public SearchController(ISearchService searchService, IPackageService packageService, IUrlGenerator urlGenerator)
+
+        public SearchController(ISearchService searchService, IPackageService packageService, IUrlGenerator urlGenerator, IMemoryCache cache)
         {
             _searchService = searchService;
             _packageService = packageService;
             _url = urlGenerator;
+            _cache = cache;
         }
 
         [HttpGet("@/package/{name}/{version}")]
         public async Task<ActionResult<Package>> FindByName(string name, string version, [FromQuery] bool includeUnlisted = false)
         {
+            if (_cache.TryGetValue((name, version), out Package package))
+                return Json(package);
+
             var ver = version switch
             {
                 "latest" or null => new (0, 0, 0, 0, "", "latest"),
@@ -40,6 +47,9 @@ namespace core.controllers
             result.Icon = result.HasEmbeddedIcon
                 ? _url.GetPackageIconDownloadUrl(result.Name, result.Version)
                 : result.Icon;
+
+
+            _cache.Set((name, version), result, ver.HasMetadata ? TimeSpan.FromMinutes(15) : TimeSpan.FromDays(2));
 
             return Json(result);
         }
