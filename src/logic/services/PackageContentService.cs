@@ -43,42 +43,45 @@ public class PackageContentService : IPackageContentService
         NuGetVersion version,
         CancellationToken cancellationToken = default)
     {
-        if (!await _packages.AddDownloadAsync(id, version, cancellationToken))
-        {
-            return null;
-        }
+        var package = await _packages.FindOrNullAsync(id, version, includeUnlisted: true, cancellationToken);
 
-        return await _storage.GetPackageStreamAsync(id, version, cancellationToken);
+        if (package is null)
+            return null;
+
+        if (!await _packages.AddDownloadAsync(id, version, cancellationToken))
+            return null;
+       
+
+        return await _storage.GetPackageStreamAsync(package.Name, package.Version, cancellationToken);
     }
 
     public async Task<Stream> GetPackageManifestStreamOrNullAsync(string id, NuGetVersion version, CancellationToken cancellationToken = default)
     {
-        if (!await _packages.ExistsAsync(id, version, cancellationToken))
-        {
+        var package = await _packages.FindOrNullAsync(id, version, includeUnlisted: true, cancellationToken);
+        if (package == null)
             return null;
-        }
 
-        return await _storage.GetNuspecStreamAsync(id, version, cancellationToken);
+        return await _storage.GetNuspecStreamAsync(package.Name, package.Version, cancellationToken);
     }
 
     public async Task<Stream> GetPackageReadmeStreamOrNullAsync(string id, NuGetVersion version, CancellationToken cancellationToken = default)
     {
         var package = await _packages.FindOrNullAsync(id, version, includeUnlisted: true, cancellationToken);
         if (!package.HasEmbbededReadme)
-        {
             return null;
-        }
 
-        return await _storage.GetReadmeStreamAsync(id, version, cancellationToken);
+        return await _storage.GetReadmeStreamAsync(package.Name, package.Version, cancellationToken);
     }
 
     public async Task<Stream> GetPackageIconStreamOrNullAsync(string id, NuGetVersion version, CancellationToken cancellationToken = default)
     {
         var package = await _packages.FindOrNullAsync(id, version, includeUnlisted: true, cancellationToken);
+        if (package is null)
+            return null;
         if (!package?.HasEmbeddedIcon ?? true)
             return null;
 
-        return await _storage.GetIconStreamAsync(id, version, cancellationToken);
+        return await _storage.GetIconStreamAsync(package.Name, package.Version, cancellationToken);
     }
 }
 

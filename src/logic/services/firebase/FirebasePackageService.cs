@@ -129,12 +129,19 @@ public partial class FirebasePackageService : IPackageService
             .AsReadOnly();
     }
 
+    private static Dictionary<(string, NuGetVersion), Package> _cachePackages = new ();
+
+
     public async Task<Package?> FindOrNullAsync(
         string id,
         NuGetVersion version,
         bool includeUnlisted,
         CancellationToken cancellationToken)
     {
+        if (!version.Metadata.Equals("next") || !version.Metadata.Equals("latest"))
+            if (_cachePackages.ContainsKey((id, version)))
+                return _cachePackages[(id, version)];
+
         var entity = await _operationBuilder.Retrieve(id, version);
 
         if (entity == null)
@@ -142,7 +149,11 @@ public partial class FirebasePackageService : IPackageService
         if (!includeUnlisted && !entity.Listed)
             return null;
 
-        return _mapper.Map<Package>(entity);
+        var result = _mapper.Map<Package>(entity);
+
+        if (!version.Metadata.Equals("next") || !version.Metadata.Equals("latest"))
+            _cachePackages[(id, version)] = result;
+        return result;
     }
 
 
