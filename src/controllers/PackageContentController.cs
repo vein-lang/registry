@@ -27,10 +27,14 @@ public class PackageContentController : Controller
     [HttpGet("@/packages/{id}/{version}")]
     public async Task<IActionResult> DownloadPackageAsync(string id, string version, CancellationToken cancellationToken)
     {
-        if (!NuGetVersion.TryParse(version, out var nugetVersion))
-            return NotFound();
+        var ver = version switch
+        {
+            "latest" or null => new (0, 0, 0, 0, "", "latest"),
+            "next"           => new (0, 0, 0, 0, "", "next"),
+            not null         => NuGetVersion.Parse(version)
+        };
 
-        var packageStream = await _content.GetPackageContentStreamOrNullAsync(id, nugetVersion, cancellationToken);
+        var packageStream = await _content.GetPackageContentStreamOrNullAsync(id, ver, cancellationToken);
         if (packageStream == null)
             return NotFound();
 
@@ -40,10 +44,14 @@ public class PackageContentController : Controller
     [HttpGet("@/packages/{id}/{version}/spec.json")]
     public async Task<IActionResult> DownloadVeinSpecAsync(string id, string version, CancellationToken cancellationToken)
     {
-        if (!NuGetVersion.TryParse(version, out var nugetVersion))
-            return NotFound();
+        var ver = version switch
+        {
+            "latest" or null => new (0, 0, 0, 0, "", "latest"),
+            "next"           => new (0, 0, 0, 0, "", "next"),
+            not null         => NuGetVersion.Parse(version)
+        };
 
-        var nuspecStream = await _content.GetPackageManifestStreamOrNullAsync(id, nugetVersion, cancellationToken);
+        var nuspecStream = await _content.GetPackageManifestStreamOrNullAsync(id, ver, cancellationToken);
         if (nuspecStream == null)
             return NotFound();
 
@@ -53,10 +61,14 @@ public class PackageContentController : Controller
     [HttpGet("@/packages/{id}/{version}/readme")]
     public async Task<IActionResult> DownloadReadmeAsync(string id, string version, CancellationToken cancellationToken)
     {
-        if (!NuGetVersion.TryParse(version, out var nugetVersion))
-            return NotFound();
+        var ver = version switch
+        {
+            "latest" or null => new (0, 0, 0, 0, "", "latest"),
+            "next"           => new (0, 0, 0, 0, "", "next"),
+            not null         => NuGetVersion.Parse(version)
+        };
 
-        var readmeStream = await _content.GetPackageReadmeStreamOrNullAsync(id, nugetVersion, cancellationToken);
+        var readmeStream = await _content.GetPackageReadmeStreamOrNullAsync(id, ver, cancellationToken);
         if (readmeStream == null)
             return NotFound();
 
@@ -70,10 +82,14 @@ public class PackageContentController : Controller
     [HttpGet("@/packages/{id}/{version}/icon")]
     public async Task<IActionResult> DownloadIconAsync(string id, string version, CancellationToken cancellationToken)
     {
-        if (!NuGetVersion.TryParse(version, out var nugetVersion))
-            return NotFound();
+        var ver = version switch
+        {
+            "latest" or null => new (0, 0, 0, 0, "", "latest"),
+            "next"           => new (0, 0, 0, 0, "", "next"),
+            not null         => NuGetVersion.Parse(version)
+        };
 
-        var iconStream = await _content.GetPackageIconStreamOrNullAsync(id, nugetVersion, cancellationToken);
+        var iconStream = await _content.GetPackageIconStreamOrNullAsync(id, ver, cancellationToken);
         if (iconStream == null)
             return NotFound();
         return File(iconStream, "image/png");
