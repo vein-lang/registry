@@ -117,11 +117,12 @@ public partial class FirebasePackageService : IPackageService
 
         var filter = await packages
                 .Collection("v")
-                .WhereEqualTo("Listed", !includeUnlisted)
                 .Limit(500)
                 .GetSnapshotAsync(cancellationToken);
         var a = filter.Select(x => x.ConvertTo<PackageEntity>()).Select(x => _mapper.Map<Package>(x)).ToList();
 
+        if (!includeUnlisted)
+            a = a.Where(x => x.Listed).ToList();
 
         return a
             .OrderBy(p => p.Version)

@@ -27,14 +27,20 @@ public class PackageContentService : IPackageContentService
             return null;
         }
 
+        packages = packages.OrderByDescending(x => x.Version).ToList();
+
         var versions = packages.Select(p => p.Version).ToList();
+        var downloads = packages.Select(p => p.Downloads).ToList();
+        var dates = packages.Select(p => p.Published).ToList();
 
         return new PackageVersionsResponse
         {
             Versions = versions
                 .Select(v => v.ToNormalizedString())
                 .Select(v => v.ToLowerInvariant())
-                .ToList()
+                .ToList(),
+            Downloads = downloads,
+            Dates = dates
         };
     }
 
@@ -169,4 +175,8 @@ public class PackageVersionsResponse
     /// </summary>
     [JsonProperty("versions")]
     public IReadOnlyList<string> Versions { get; set; }
+    [JsonProperty("downloads")]
+    public List<ulong> Downloads { get; set; }
+    [JsonProperty("dates")]
+    public List<DateTimeOffset> Dates { get; set; }
 }
