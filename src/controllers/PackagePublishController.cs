@@ -46,6 +46,15 @@ public class PackagePublishController : Controller
 
                 switch (result)
                 {
+                    case PackageIndexingResult.InternalError:
+                        HttpContext.Response.StatusCode = 500;
+                        await HttpContext.Response.WriteAsJsonAsync(new
+                        {
+                            message = $"Internal Error.",
+                            traceId = HttpContext.Request.Headers["traceparent"].ToString()
+                        });
+                        task?.Finish(SpanStatus.InternalError);
+                        break;
                     case PackageIndexingResult.InvalidPackage:
                         HttpContext.Response.StatusCode = 400;
                         await HttpContext.Response.WriteAsJsonAsync(new

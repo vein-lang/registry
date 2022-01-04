@@ -128,7 +128,7 @@ public class FireOperationBuilder
             .ToListAsync();
 
         var latestVersion = versions.OrderByDescending(x => x.version).Where(x => !x.version.IsPrerelease).First();
-        var nextVersion = versions.OrderByDescending(x => x.version).Where(x => x.version.IsPrerelease).First();
+        var nextVersion = versions.OrderByDescending(x => x.version).Where(x => x.version.IsPrerelease).FirstOrDefault();
 
         nextVersion = nextVersion.version >= latestVersion.version ? nextVersion : latestVersion;
 

@@ -80,6 +80,10 @@ public class PackageIndexingService : IPackageIndexingService
             package.NormalizedVersionString);
 
         var result = await _packages.AddAsync(package, publisher, token);
+
+        if (result == PackageAddResult.InternalError)
+            return PackageIndexingResult.InternalError;
+
         if (result == PackageAddResult.PackageAlreadyExists)
         {
             _logger.LogWarning(
@@ -181,6 +185,11 @@ public enum PackageIndexingResult
     /// The package has been indexed successfully.
     /// </summary>
     Success,
+
+    /// <summary>
+    /// Package publish has failed.
+    /// </summary>
+    InternalError,
 }
 
 /// <summary>

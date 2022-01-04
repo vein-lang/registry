@@ -45,7 +45,7 @@ public partial class FirebasePackageService : IPackageService
         catch (Exception e)
         {
             this._logger.LogError(e, nameof(AddAsync));
-            return PackageAddResult.PackageAlreadyExists;
+            return PackageAddResult.InternalError;
         }
 
         return PackageAddResult.Success;

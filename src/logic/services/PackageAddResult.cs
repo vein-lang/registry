@@ -17,5 +17,9 @@ public enum PackageAddResult
     /// <summary>
     /// The package was added successfully.
     /// </summary>
-    Success
+    Success,
+    /// <summary>
+    /// Package publish has failed.
+    /// </summary>
+    InternalError
 }
