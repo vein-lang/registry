@@ -2,6 +2,7 @@ namespace core.services;
 
 using AutoMapper;
 using core.services.searchs;
+using FirebaseAdmin.Auth;
 using Google.Cloud.Firestore;
 using MoreLinq;
 using NuGet.Versioning;
@@ -30,7 +31,7 @@ public partial class FirebasePackageService : IPackageService
         _urlGenerator = urlGenerator;
     }
 
-    public async Task<PackageAddResult> AddAsync(Package package, RegistryUser owner, CancellationToken token = default)
+    public async Task<PackageAddResult> AddAsync(Package package, UserRecord owner, CancellationToken token = default)
     {
         try
         {
@@ -188,11 +189,11 @@ public partial class FirebasePackageService : IPackageService
             .ListDocumentsAsync()
             .CountAsync();
 
-    public async Task<List<Package>> GetLatestPackagesByUserAsync(RegistryUser user, CancellationToken token = default)
+    public async Task<List<Package>> GetLatestPackagesByUserAsync(UserRecord user, CancellationToken token = default)
     {
         var snap = await _operationBuilder
             .PackagesReference
-            .WhereEqualTo("owner", user.UID)
+            .WhereEqualTo("owner", user.Uid)
             .OrderBy(FieldPath.DocumentId)
             .Select("latest")
             .GetSnapshotAsync();

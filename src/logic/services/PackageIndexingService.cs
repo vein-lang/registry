@@ -33,7 +33,7 @@ public class PackageIndexingService : IPackageIndexingService
         _mapper = mapper;
     }
 
-    public async Task<PackageIndexingResult> IndexAsync(Stream packageStream, RegistryUser publisher, CancellationToken token = default)
+    public async Task<PackageIndexingResult> IndexAsync(Stream packageStream, UserRecord publisher, CancellationToken token = default)
     {
         var package = default(Package);
         var readmeStream = default(Stream);
@@ -204,6 +204,6 @@ public interface IPackageIndexingService
     /// <param name="publisher">A publisher user.</param>
     /// <param name="cancellationToken"></param>
     /// <returns>The result of the attempted indexing operation.</returns>
-    Task<PackageIndexingResult> IndexAsync(Stream packageStream, RegistryUser publisher,
+    Task<PackageIndexingResult> IndexAsync(Stream packageStream, UserRecord publisher,
         CancellationToken token = default);
 }

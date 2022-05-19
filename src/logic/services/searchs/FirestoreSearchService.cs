@@ -68,7 +68,7 @@ public class FireOperationBuilder
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="OwnerIsNotMatchException">Owner UID is not matched.</exception>
-    public async Task<WriteResult> AddPackage([NotNull] Package package, [NotNull] RegistryUser owner)
+    public async Task<WriteResult> AddPackage([NotNull] Package package, [NotNull] UserRecord owner)
     {
         if (package == null) throw new ArgumentNullException(nameof(package));
         if (owner == null) throw new ArgumentNullException(nameof(owner));
@@ -94,13 +94,13 @@ public class FireOperationBuilder
 
             var kv = new Dictionary<string, object>
             {
-                { "owner", owner.UID }
+                { "owner", owner.Uid }
             };
             await document.CreateAsync(kv);
         }
         else
         {
-            if (!snapshot.GetValue<string>("owner").Equals(owner.UID, StringComparison.InvariantCultureIgnoreCase))
+            if (!snapshot.GetValue<string>("owner").Equals(owner.Uid, StringComparison.InvariantCultureIgnoreCase))
                 throw new OwnerIsNotMatchException();
             if (snapshot.ContainsField("IsVerified"))
                 verified = snapshot.GetValue<bool>("IsVerified");

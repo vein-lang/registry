@@ -15,7 +15,7 @@ public interface IPackageService
     /// <param name="owner">A owner of package.</param>
     /// <param name="token">A token to cancel the task.</param>
     /// <returns>The result of attempting to add the package to the database.</returns>
-    Task<PackageAddResult> AddAsync(Package package, RegistryUser owner, CancellationToken token = default);
+    Task<PackageAddResult> AddAsync(Package package, UserRecord owner, CancellationToken token = default);
 
     /// <summary>
     /// Attempt to find a package with the given id and version.
@@ -42,7 +42,7 @@ public interface IPackageService
 
     Task<IReadOnlyList<Package>> FindForUserAsync(string userID, CancellationToken cancellationToken = default);
 
-    Task<List<Package>> GetLatestPackagesByUserAsync(RegistryUser user, CancellationToken token = default);
+    Task<List<Package>> GetLatestPackagesByUserAsync(UserRecord user, CancellationToken token = default);
 
     /// <summary>
     /// Determine whether a package exists in the database (even if the package is unlisted).

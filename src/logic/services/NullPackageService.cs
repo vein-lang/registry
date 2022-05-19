@@ -8,7 +8,7 @@ public class NullPackageService : IPackageService
     public Task<PackageAddResult> AddAsync(Package package, CancellationToken cancellationToken)
         => Task.FromResult(PackageAddResult.Success);
 
-    public Task<PackageAddResult> AddAsync(Package package, RegistryUser owner, CancellationToken token = default)
+    public Task<PackageAddResult> AddAsync(Package package, UserRecord owner, CancellationToken token = default)
         => Task.FromResult(PackageAddResult.Success);
 
     public Task<Package?> FindOrNullAsync(string id, NuGetVersion version, bool includeUnlisted,
@@ -18,7 +18,7 @@ public class NullPackageService : IPackageService
     public async Task<IReadOnlyList<Package>> FindAsync(string id, bool includeUnlisted, CancellationToken cancellationToken)
         => new List<Package>().AsReadOnly();
 
-    public async Task<List<Package>> GetLatestPackagesByUserAsync(RegistryUser user, CancellationToken token = default)
+    public async Task<List<Package>> GetLatestPackagesByUserAsync(UserRecord user, CancellationToken token = default)
         => new List<Package>();
 
     public Task<bool> ExistsAsync(string id, CancellationToken cancellationToken)

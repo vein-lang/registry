@@ -1,11 +1,12 @@
+using AspNetCore.Firebase.Authentication.Extensions;
 using core;
-using core.profanity;
 using core.services;
 using core.services.searchs;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
+using FirebaseAdmin;
 using Newtonsoft.Json;
 
+
+FirebaseApp.Create();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,21 +24,7 @@ builder.Services.AddTransient(DependencyInjectionExtensions.GetServiceFromProvid
 builder.Services.AddTransient(DependencyInjectionExtensions.GetServiceFromProviders<ISearchService>);
 builder.Services.AddTransient(DependencyInjectionExtensions.GetServiceFromProviders<ISearchIndexer>);
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
-    options.Authority = builder.Configuration["Auth0:Authority"];
-    options.Audience = builder.Configuration["Auth0:Audience"];
-    options.TokenValidationParameters = new TokenValidationParameters()
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true
-    };
-});
-
+builder.Services.AddFirebaseAuthentication("https://securetoken.google.com/vein-lang", "vein-lang");
 
 builder.Services
     .AddControllers()

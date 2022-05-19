@@ -4,6 +4,7 @@ using System.Security.Authentication;
 using System.Security.Claims;
 using System.Text;
 using aspects;
+using FirebaseAdmin.Auth;
 using Flurl.Http;
 using Google.Cloud.Firestore;
 using searchs;
@@ -38,7 +39,7 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
         apiKey.CreationDate = DateTimeOffset.Now;
         apiKey.EndOfLife = endOfLife;
         apiKey.Name = name;
-        apiKey.UserOwner = me.UID;
+        apiKey.UserOwner = me.Uid;
         apiKey.UID = $"{Guid.NewGuid()}";
 
         await _operationBuilder.Collection("apiKeys")
@@ -56,7 +57,7 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
         var list = await _operationBuilder.Collection("apiKeys")
             .ListDocumentsAsync()
             .SelectAwait(async x => await x.GetSnapshotAsync())
-            .Where(x => x.GetValue<string>("owner").Equals(me.UID))
+            .Where(x => x.GetValue<string>("owner").Equals(me.Uid))
             .ToListAsync();
 
         return list.Select(x => x.ConvertTo<ApiKey>()).ToList().AsReadOnly();
@@ -73,7 +74,7 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
     }
 
     [Interceptor("Failed get current user.")]
-    public async ValueTask<RegistryUser?> GetMeAsync(CancellationToken token = default)
+    public async ValueTask<UserRecord?> GetMeAsync(CancellationToken token = default)
     {
         var subKey = _ctx.HttpContext!.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier);
         var apiKey = (string)_ctx.HttpContext.Request.Headers["X-VEIN-API-KEY"];
@@ -87,40 +88,32 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
             if (keyData is null)
                 return null;
             var val = (await keyData.GetSnapshotAsync()).ConvertTo<ApiKey>();
-            return (await _operationBuilder
-                    .Collection("users")
-                    .Document($"{val.UserOwner}")
-                    .GetSnapshotAsync(token))
-                .ConvertTo<RegistryUser>();
+            
+            return await FirebaseAuth.DefaultInstance.GetUserAsync(val.UserOwner);
         }
 
         if (subKey is null)
             throw new AuthenticationException("Sub key is not preset");
-
-        var result = await _operationBuilder
-            .Collection("users-refs")
-            .Document(subKey.Value)
-            .GetSnapshotAsync(token);
-
-        if (result.Exists)
-        {
-            var link = result.ConvertTo<UserLink>();
-
-            if (link.RequestReIndexing)
-            {
-                // TODO
-            }
-            return (await _operationBuilder
-                .Collection("users")
-                .Document($"{link.InternalUID}")
-                .GetSnapshotAsync(token))
-                .ConvertTo<RegistryUser>();
-        }
         
+        return await FirebaseAuth.DefaultInstance.GetUserAsync(subKey.Value);
+
+        /*var userLink = new UserLink() { InternalUID = userinfo.UID, Sub = userinfo.Sub };
+
+        await _operationBuilder
+            .Collection("users-refs")
+            .Document(userLink.Sub)
+            .CreateAsync(userLink, token);
+
+        await _operationBuilder
+            .Collection("users")
+            .Document($"{userLink.InternalUID}")
+            .CreateAsync(userinfo, token);
+
+        return userinfo;
         
         var userinfo = await $"{_config["Auth0:Authority"]}/userinfo"
             .WithHeader("Authorization", _ctx.HttpContext!.Request.Headers["Authorization"])
-            .GetJsonAsync<RegistryUser>(token);
+            .GetJsonAsync<UserRecord>(token);
 
 
         userinfo.UID = $"{Guid.NewGuid()}";
@@ -138,7 +131,7 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
             .Document($"{userLink.InternalUID}")
             .CreateAsync(userinfo, token);
 
-        return userinfo;
+        return userinfo;*/
     }
 
     [Interceptor("Failed get packages by currently user.")]
@@ -146,7 +139,7 @@ public class FirebaseUserService : IUserService, ILoggerAccessor
     {
         var me = await GetMeAsync(cancellationToken);
 
-        return await _packageService.FindForUserAsync(me.UID, cancellationToken);
+        return await _packageService.FindForUserAsync(me.Uid, cancellationToken);
     }
 
     [Interceptor("Failed index package.")]
@@ -163,7 +156,7 @@ public interface IUserService
 
     public Task DeleteApiKeyAsync(string uid);
 
-    public ValueTask<RegistryUser> GetMeAsync(CancellationToken token = default);
+    public ValueTask<UserRecord?> GetMeAsync(CancellationToken token = default);
 
     public ValueTask<IReadOnlyCollection<Package>> GetPackagesAsync(CancellationToken cancellationToken = default);
 
