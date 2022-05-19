@@ -6,7 +6,10 @@ using FirebaseAdmin;
 using Newtonsoft.Json;
 
 
-FirebaseApp.Create();
+FirebaseApp.Create(new AppOptions()
+{
+    ProjectId = "vein-lang"
+});
 
 var builder = WebApplication.CreateBuilder(args);
 
