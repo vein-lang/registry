@@ -6,8 +6,13 @@ using NuGet.Versioning;
 public class RegistryUrlGenerator : IUrlGenerator
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    public RegistryUrlGenerator(IHttpContextAccessor httpContextAccessor)
-        => _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+    private readonly IHostEnvironment _env;
+
+    public RegistryUrlGenerator(IHttpContextAccessor httpContextAccessor, IHostEnvironment env)
+    {
+        _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+        _env = env;
+    }
 
     public string? GetServiceIndexUrl() =>
         AbsoluteUrl("@/index.json");
@@ -46,8 +51,13 @@ public class RegistryUrlGenerator : IUrlGenerator
     {
         var request = _httpContextAccessor.HttpContext!.Request;
 
+        var scheme = request.Scheme;
+
+        if (_env.IsProduction() || _env.IsStaging())
+            scheme = "https";
+
         return string.Concat(
-            request.Scheme,
+            scheme,
             "://",
             request.Host.ToUriComponent(),
             request.PathBase.ToUriComponent(),
