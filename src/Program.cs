@@ -3,12 +3,14 @@ using core;
 using core.services;
 using core.services.searchs;
 using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using Newtonsoft.Json;
 
 
 FirebaseApp.Create(new AppOptions()
 {
-    ProjectId = "vein-lang"
+    ProjectId = "vein-lang",
+    Credential = await GoogleCredential.GetApplicationDefaultAsync()
 });
 
 var builder = WebApplication.CreateBuilder(args);
