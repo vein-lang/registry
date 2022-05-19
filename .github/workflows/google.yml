@@ -25,7 +25,7 @@ jobs:
       with:
         submodules: true
     - run: git fetch --all --prune --unshallow --tags --recurse-submodules-default=yes
-    - uses: google-github-actions/setup-gcloud@master
+    - uses: google-github-actions/setup-gcloud
       with:
         service_account_email: ${{ secrets.GKE_EMAIL }}
         service_account_key: ${{ secrets.GKE_KEY }}
