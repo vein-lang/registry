@@ -38,4 +38,4 @@ jobs:
         gcloud builds submit --tag "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE":"$GITHUB_SHA"
     - name: Deploy
       run: |
-        gcloud run deploy "$DEPLOYMENT_NAME" --image "$REGISTRY_HOSTNAME"/"$GKE_PROJECT"/"$IMAGE":"$GITHUB_SHA" --platform managed --region "$GKE_REGION" --allow-unauthenticated
+        gcloud run deploy registry --image gcr.io/"$GKE_PROJECT"/"$IMAGE":"$GITHUB_SHA" --platform managed --region europe-north1 --allow-unauthenticated
