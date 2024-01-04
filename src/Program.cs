@@ -55,8 +55,8 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader());
     options.AddPolicy(name: "production",
         builder => builder.WithOrigins(
-            "https://api.vein.gallery",
-            "https://vein.gallery")
+            "https://api.vein-lang.org",
+            "https://gallery.vein-lang.org")
             .AllowAnyHeader()
             .AllowAnyMethod());
 });
