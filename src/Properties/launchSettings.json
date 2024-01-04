@@ -6,7 +6,7 @@
       "launchBrowser": false,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "GOOGLE_APPLICATION_CREDENTIALS": "C:\\git\\additional-resource\\vein-lang-2ca627fcc703.json"
+        "GOOGLE_APPLICATION_CREDENTIALS": "C:\\git\\keys\\vein-lang.json"
       },
       "applicationUrl": "https://localhost:8080;http://localhost:5062",
       "dotnetRunMessages": true

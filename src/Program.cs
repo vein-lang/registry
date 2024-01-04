@@ -74,11 +74,9 @@ app.UseCors(app.Environment.IsDevelopment() ? "localhost" : "production");
 app.UseAuthorization();
 app.UseOperationCancelledMiddleware();
 app.UseForwardedHeaders();
-app.UseHttpsRedirection();
-app.UseEndpoints(endpoints =>
-{
-    endpoints.MapHealthChecks("/health");
-    endpoints.MapControllers();
-});
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
+app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
