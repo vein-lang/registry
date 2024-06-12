@@ -23,7 +23,7 @@ public class RegistryServiceIndex : IServiceIndexService
         => _url = url ?? throw new ArgumentNullException(nameof(url));
 
     private ServiceIndexItem BuildResource(string name, string url) =>
-        new ServiceIndexItem
+        new()
         {
             ResourceUrl = url,
             Type = name,

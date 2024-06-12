@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 public class SearchContext
 {
-    public static SearchContext Default(string registrationBaseUrl) => new SearchContext
+    public static SearchContext Default(string registrationBaseUrl) => new()
     {
         Vocab = "http://schema.registry.vein-lang.org/schema#",
         Base = registrationBaseUrl

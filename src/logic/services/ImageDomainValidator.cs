@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 public class ImageDomainValidator
 {
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromMinutes(1);
-    private static readonly Regex GithubBadgeUrlRegEx = new Regex("^(https|http):\\/\\/github\\.com\\/[^/]+\\/[^/]+(\\/actions)?\\/workflows\\/.*badge\\.svg", RegexOptions.IgnoreCase, RegexTimeout);
+    private static readonly Regex GithubBadgeUrlRegEx = new("^(https|http):\\/\\/github\\.com\\/[^/]+\\/[^/]+(\\/actions)?\\/workflows\\/.*badge\\.svg", RegexOptions.IgnoreCase, RegexTimeout);
     
     public bool TryPrepareImageUrlForRendering(string uriString, out string readyUriString)
     {
@@ -40,8 +40,8 @@ public class ImageDomainValidator
         IsGitHubBadge(uri);
 
 
-    private static List<string> TrustedImageDomains = new List<string>()
-    {
+    private static List<string> TrustedImageDomains =
+    [
         "api.bintray.com",
         "api.codacy.com",
         "app.codacy.com",
@@ -75,7 +75,7 @@ public class ImageDomainValidator
         "raw.githubusercontent.com",
         "user-images.githubusercontent.com",
         "camo.githubusercontent.com"
-    };
+    ];
 
     private bool IsGitHubBadge(Uri uri)
     {

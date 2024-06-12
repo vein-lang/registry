@@ -19,26 +19,26 @@ public class Profanity
 
     // Characters for creating variants
     private readonly Dictionary<char, List<char>> _charsMapping =
-            new Dictionary<char, List<char>>()
+            new()
             {
-                { 'a', new List<char>() { 'a', '@', '*', '4' } },
-                { 'i', new List<char>() { 'i', '*', 'l', '1' } },
-                { 'o', new List<char>() { 'o', '*', '0', '@' } },
-                { 'u', new List<char>() { 'u', '*', 'v' } },
-                { 'v', new List<char>() { 'v', '*', 'u' } },
-                { 'l', new List<char>() { 'l', '1' } },
-                { 'e', new List<char>() { 'e', '*', '3' } },
-                { 's', new List<char>() { 's', '$', '5' } }
+                { 'a', ['a', '@', '*', '4'] },
+                { 'i', ['i', '*', 'l', '1'] },
+                { 'o', ['o', '*', '0', '@'] },
+                { 'u', ['u', '*', 'v'] },
+                { 'v', ['v', '*', 'u'] },
+                { 'l', ['l', '1'] },
+                { 'e', ['e', '*', '3'] },
+                { 's', ['s', '$', '5'] }
             };
 
     // Data directory, in case the user wants to override the data path
-    private string dataDir = null;
+    private readonly string? dataDir = null;
 
     /// <summary>
     /// The profanity filter
     /// </summary>
     /// <param name="dataDir">Optional directory to search for alphabetic_unicode.json and profanity_wordlist.txt in</param>
-    public Profanity(string dataDir = null)
+    public Profanity(string? dataDir = null)
     {
         this.dataDir = dataDir;
         Utils.LoadUnicodeSymbols(dataDir);
@@ -55,25 +55,10 @@ public class Profanity
     /// Sets the original behavior mode flag 
     /// </summary>
     /// <param name="value">originalBehaviorMode value</param>
-    public void SetOriginalBehaviorMode(bool value)
-    {
-        originalBehaviorMode = value;
-    }
+    public void SetOriginalBehaviorMode(bool value) => originalBehaviorMode = value;
 
     private int CountNonAllowedCharacters(string word)
-    {
-        var count = 0;
-
-        foreach (var c in word)
-        {
-            if (!Utils.AllowedCharacters.Contains(c.ToString()))
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
+        => word.Count(c => !Utils.AllowedCharacters.Contains(c.ToString()));
 
     /// <summary>
     /// Adds words to the censored word set.
@@ -81,10 +66,7 @@ public class Profanity
     /// <param name="newWords">An IEnumerable<string> of words to add</param>
     public void AddCensorWords(IEnumerable<string> newWords)
     {
-        foreach (var word in newWords)
-        {
-            CensorWordSet.Add(word);
-        }
+        foreach (var word in newWords) CensorWordSet.Add(word);
     }
 
     /// <summary>
@@ -129,28 +111,16 @@ public class Profanity
             .ToList();
     }
 
-    private List<string> GeneratePatternsFromWord(string word)
+    private IEnumerable<string> GeneratePatternsFromWord(string word)
     {
-        var combos = new List<List<char>>();
-        foreach (var c in word)
-        {
-            combos.Add(!_charsMapping.ContainsKey(c) ? new List<char>() { c } : _charsMapping[c]);
-        }
-
+        var combos = word.Select(c => !_charsMapping.ContainsKey(c) ? [c] : _charsMapping[c]).ToList();
         var product = combos.CartesianProduct();
         return product.Select(combo => string.Join("", combo)).ToList();
     }
 
-    private string GetReplacementForSwearWord(char censorChar, int count = 4)
-    {
+    private string GetReplacementForSwearWord(char censorChar, int count = 4) =>
         // 4 is hardcoded for original behavior mode
-        if (originalBehaviorMode)
-        {
-            return new string(censorChar, 4);
-        }
-
-        return new string(censorChar, count);
-    }
+        originalBehaviorMode ? new string(censorChar, 4) : new string(censorChar, count);
 
     /// <summary>
     /// Return true if the input text has any swear words.
@@ -170,9 +140,7 @@ public class Profanity
     {
         // Python: not set() = true
         if (wordsIndices == null || wordsIndices.Count < 1)
-        {
             wordsIndices = Utils.GetNextWords(text, startIndex, maxNumberCombinations);
-        }
         else
         {
             wordsIndices.RemoveRange(0, 2);
@@ -300,7 +268,7 @@ public class Profanity
 
 public static class Utils
 {
-    public static readonly HashSet<string> AllowedCharacters = new HashSet<string>();
+    public static readonly HashSet<string> AllowedCharacters = [];
 
     /// <summary>
     /// Add ascii_letters, digits, and @$*"' to the allowed character list (AllowedCharacters).
@@ -442,11 +410,11 @@ public static class Utils
         // Return an empty string if there are no other words
         if (nextWordStartIndex >= s.Length - 1)
         {
-            return new List<(string, int)>()
-                {
-                    ("", nextWordStartIndex),
-                    ("", nextWordStartIndex)
-                };
+            return
+            [
+                ("", nextWordStartIndex),
+                ("", nextWordStartIndex)
+            ];
         }
 
         // Combine the words into a list

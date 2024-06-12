@@ -316,7 +316,7 @@ public class FirestoreSearchService : ISearchService
             .ToList();
 
         if (packages.Count == 0)
-            return new List<List<PackageEntity>>();
+            return [];
 
         var segment = await packages.ToAsyncEnumerable()
                 .Select(x => x.Collection("v"))
@@ -332,7 +332,7 @@ public class FirestoreSearchService : ISearchService
 
             if (lastPartitionKey != pkgID)
             {
-                results.Add(new List<PackageEntity>());
+                results.Add([]);
                 lastPartitionKey = pkgID;
             }
 

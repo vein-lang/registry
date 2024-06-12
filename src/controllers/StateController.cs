@@ -30,11 +30,11 @@ public class StateController : Controller
         var result = new PackagesState()
         {
             latest_packages = latest,
-            packages_state = new List<AnalyticsKeyValue>()
-            {
-                { new("Package downloads", downloads) },
-                { new("Package total", count) },
-            },
+            packages_state =
+            [
+                new("Package downloads", downloads),
+                new("Package total", count)
+            ],
             popular_packages = popular
         };
 
@@ -49,5 +49,5 @@ public class PackagesState
 {
     public IReadOnlyCollection<string> popular_packages { get; set; } 
     public IReadOnlyCollection<string> latest_packages { get; set; } 
-    public List<AnalyticsKeyValue> packages_state { get; set; } = new ();
+    public List<AnalyticsKeyValue> packages_state { get; set; } = [];
 }

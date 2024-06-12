@@ -23,9 +23,9 @@ public class MarkdownService
 {
     private readonly ImageDomainValidator _imageDomainValidator;
     private static readonly TimeSpan RegexTimeout = TimeSpan.FromMinutes(1);
-    private static readonly Regex EncodedBlockQuotePattern = new Regex("^ {0,3}&gt;", RegexOptions.Multiline, RegexTimeout);
-    private static readonly Regex LinkPattern = new Regex("<a href=([\"\']).*?\\1", RegexOptions.None, RegexTimeout);
-    private static readonly Regex HtmlCommentPattern = new Regex("<!--.*?-->", RegexOptions.Singleline, RegexTimeout);
+    private static readonly Regex EncodedBlockQuotePattern = new("^ {0,3}&gt;", RegexOptions.Multiline, RegexTimeout);
+    private static readonly Regex LinkPattern = new("<a href=([\"\']).*?\\1", RegexOptions.None, RegexTimeout);
+    private static readonly Regex HtmlCommentPattern = new("<!--.*?-->", RegexOptions.Singleline, RegexTimeout);
 
     public bool IsMarkdigMdRenderingEnabled { get; set; } = true;
 

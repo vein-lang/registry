@@ -56,7 +56,7 @@ public static class DependencyInjectionExtensions
             a.ProjectId = configuration.GetDatabaseConnectionString();
             return a.Build();
         });
-        services.AddSingleton(x => GetServiceFromProviders<FirestoreDb>(x));
+        services.AddSingleton(GetServiceFromProviders<FirestoreDb>);
 
         services.TryAddSingleton<NullSearchIndexer>();
         services.TryAddSingleton<NullSearchService>();

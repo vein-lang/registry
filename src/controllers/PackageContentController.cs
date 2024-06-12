@@ -79,12 +79,13 @@ public class PackageContentController : Controller
         };
 
         var readmeStream = await _content.GetPackageReadmeStreamOrNullAsync(id, ver, cancellationToken);
+
         if (readmeStream == null)
             return NotFound();
 
         using var reader = new StreamReader(readmeStream);
 
-        var result = await reader.ReadToEndAsync();
+        var result = await reader.ReadToEndAsync(cancellationToken);
 
         _cache.Set($"@/packages/{id}/{version}/readme", result,
             ver.HasMetadata ? TimeSpan.FromMinutes(15) : TimeSpan.FromHours(6));

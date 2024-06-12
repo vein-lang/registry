@@ -18,8 +18,8 @@ public class NullPackageService : IPackageService
     public async Task<IReadOnlyList<Package>> FindAsync(string id, bool includeUnlisted, CancellationToken cancellationToken)
         => new List<Package>().AsReadOnly();
 
-    public async Task<List<Package>> GetLatestPackagesByUserAsync(UserRecord user, CancellationToken token = default)
-        => new List<Package>();
+    public async Task<List<Package>> GetLatestPackagesByUserAsync(UserRecord user, CancellationToken token = default) =>
+        [];
 
     public Task<bool> ExistsAsync(string id, CancellationToken cancellationToken)
         => Task.FromResult(default(bool));
