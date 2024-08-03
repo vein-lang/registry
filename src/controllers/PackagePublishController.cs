@@ -29,7 +29,7 @@ public class PackagePublishController(
             var me = await userService.GetMeAsync(cancellationToken);
             var result = await indexer.IndexAsync(uploadStream, me, cancellationToken);
 
-            switch (result)
+            switch (result.Item1)
             {
                 case PackageIndexingResult.InternalError:
                     HttpContext.Response.StatusCode = 500;
@@ -44,7 +44,7 @@ public class PackagePublishController(
                     HttpContext.Response.StatusCode = 400;
                     await HttpContext.Response.WriteAsJsonAsync(new
                     {
-                        message = $"Invalid package.",
+                        message = result.Item2,
                         traceId = HttpContext.Request.Headers["traceparent"].ToString()
                     }, cancellationToken: cancellationToken);
                     task?.Finish(SpanStatus.InvalidArgument);

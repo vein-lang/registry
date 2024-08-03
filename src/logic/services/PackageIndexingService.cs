@@ -1,39 +1,28 @@
 namespace core.services;
 
 using AutoMapper;
-using core.services.searchs;
+using searchs;
 using Microsoft.Extensions.Options;
 using vein.project.shards;
 
-public class PackageIndexingService : IPackageIndexingService
+public class PackageIndexingService(
+    IPackageService packages,
+    IPackageStorageService storage,
+    ISearchIndexer search,
+    SystemTime time,
+    IOptionsSnapshot<RegistryOptions> options,
+    ILogger<PackageIndexingService> logger,
+    IMapper mapper)
+    : IPackageIndexingService
 {
-    private readonly IPackageService _packages;
-    private readonly IPackageStorageService _storage;
-    private readonly ISearchIndexer _search;
-    private readonly SystemTime _time;
-    private readonly IOptionsSnapshot<RegistryOptions> _options;
-    private readonly ILogger<PackageIndexingService> _logger;
-    private readonly IMapper _mapper;
+    private readonly IPackageService _packages = packages ?? throw new ArgumentNullException(nameof(packages));
+    private readonly IPackageStorageService _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+    private readonly ISearchIndexer _search = search ?? throw new ArgumentNullException(nameof(search));
+    private readonly SystemTime _time = time ?? throw new ArgumentNullException(nameof(time));
+    private readonly IOptionsSnapshot<RegistryOptions> _options = options ?? throw new ArgumentNullException(nameof(options));
+    private readonly ILogger<PackageIndexingService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    public PackageIndexingService(
-        IPackageService packages,
-        IPackageStorageService storage,
-        ISearchIndexer search,
-        SystemTime time,
-        IOptionsSnapshot<RegistryOptions> options,
-        ILogger<PackageIndexingService> logger,
-        IMapper mapper)
-    {
-        _packages = packages ?? throw new ArgumentNullException(nameof(packages));
-        _storage = storage ?? throw new ArgumentNullException(nameof(storage));
-        _search = search ?? throw new ArgumentNullException(nameof(search));
-        _time = time ?? throw new ArgumentNullException(nameof(time));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _mapper = mapper;
-    }
-
-    public async Task<PackageIndexingResult> IndexAsync(Stream packageStream, UserRecord publisher, CancellationToken token = default)
+    public async Task<(PackageIndexingResult, string)> IndexAsync(Stream packageStream, UserRecord publisher, CancellationToken token = default)
     {
         var package = default(Package);
         var readmeStream = default(Stream);
@@ -43,7 +32,7 @@ public class PackageIndexingService : IPackageIndexingService
         {
             var packageReader = await Shard.OpenAsync(packageStream, true, token);
             var manifest = await packageReader.GetManifestAsync(token);
-            package = _mapper.Map<Package>(manifest);
+            package = mapper.Map<Package>(manifest);
             package.Published = _time.UtcNow;
             package.Listed = true;
             
@@ -56,9 +45,10 @@ public class PackageIndexingService : IPackageIndexingService
         }
         catch (ShardPackageCorruptedException e)
         {
-            _logger.LogError(e, "Uploaded package is invalid");
+            _logger.LogError("Uploaded package is invalid");
+            _logger.LogError(e.Message);
 
-            return PackageIndexingResult.InvalidPackage;
+            return (PackageIndexingResult.InvalidPackage, e.Message);
         }
 
 
@@ -67,7 +57,7 @@ public class PackageIndexingService : IPackageIndexingService
         {
             if (!_options.Value.AllowPackageOverwrites)
             {
-                return PackageIndexingResult.PackageAlreadyExists;
+                return (PackageIndexingResult.PackageAlreadyExists, "");
             }
 
             await _packages.HardDeletePackageAsync(package.Name, package.Version, token);
@@ -82,7 +72,7 @@ public class PackageIndexingService : IPackageIndexingService
         var result = await _packages.AddAsync(package, publisher, token);
 
         if (result == PackageAddResult.InternalError)
-            return PackageIndexingResult.InternalError;
+            return (PackageIndexingResult.InternalError, "");
 
         if (result == PackageAddResult.PackageAlreadyExists)
         {
@@ -91,7 +81,7 @@ public class PackageIndexingService : IPackageIndexingService
                 package.Name,
                 package.NormalizedVersionString);
 
-            return PackageIndexingResult.PackageAlreadyExists;
+            return (PackageIndexingResult.PackageAlreadyExists, "");
         }
 
         if (result == PackageAddResult.AccessDenied)
@@ -101,7 +91,7 @@ public class PackageIndexingService : IPackageIndexingService
                 package.Name,
                 package.NormalizedVersionString);
 
-            return PackageIndexingResult.AccessDenied;
+            return (PackageIndexingResult.AccessDenied, "");
         }
 
         if (result != PackageAddResult.Success)
@@ -155,7 +145,7 @@ public class PackageIndexingService : IPackageIndexingService
             package.Name,
             package.NormalizedVersionString);
 
-        return PackageIndexingResult.Success;
+        return (PackageIndexingResult.Success, "");
     }
 }
 
@@ -204,6 +194,6 @@ public interface IPackageIndexingService
     /// <param name="publisher">A publisher user.</param>
     /// <param name="cancellationToken"></param>
     /// <returns>The result of the attempted indexing operation.</returns>
-    Task<PackageIndexingResult> IndexAsync(Stream packageStream, UserRecord publisher,
+    Task<(PackageIndexingResult, string)> IndexAsync(Stream packageStream, UserRecord publisher,
         CancellationToken token = default);
 }
