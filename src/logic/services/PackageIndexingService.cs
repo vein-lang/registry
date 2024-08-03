@@ -31,9 +31,11 @@ public class PackageIndexingService(
 
         try
         {
+            logger.LogInformation($"Shard.OpenAsync");
             var packageReader = await Shard.OpenAsync(packageStream, true, token);
+            logger.LogInformation($"packageReader.GetManifestAsync");
             var manifest = await packageReader.GetManifestAsync(token);
-
+            logger.LogInformation($"userService.UserAllowedPublishWorkloads");
             if (manifest.IsWorkload && !await userService.UserAllowedPublishWorkloads())
                 return (PackageIndexingResult.InvalidPackage, "You cannot publish workload package!");
             
@@ -45,7 +47,7 @@ public class PackageIndexingService(
                 readmeStream = await packageReader.GetReadmeAsync(token);
             if (package.HasEmbeddedIcon)
                 iconStream = await packageReader.GetIconAsync(token);
-
+            logger.LogInformation($"PackageValidator.ValidateExistAsync");
             await PackageValidator.ValidateExistAsync(packageReader);
         }
         catch (ShardPackageCorruptedException e) when (e.InnerException is PackageValidatorException validateError)

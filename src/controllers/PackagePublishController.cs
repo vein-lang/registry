@@ -28,6 +28,8 @@ public class PackagePublishController(
             }
 
             var me = await userService.GetMeAsync(cancellationToken);
+
+            logger.LogInformation($"indexer.IndexAsync");
             var result = await indexer.IndexAsync(uploadStream, me, cancellationToken);
 
             switch (result.Item1)
