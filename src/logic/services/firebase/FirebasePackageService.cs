@@ -30,6 +30,10 @@ public partial class FirebasePackageService(
                 ._operationBuilder
                 .AddPackage(package, owner);
         }
+        catch (PackageValidatorException)
+        {
+            throw;
+        }
         catch (OwnerIsNotMatchException)
         {
             return PackageAddResult.AccessDenied;

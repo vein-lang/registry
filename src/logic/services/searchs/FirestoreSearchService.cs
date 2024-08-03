@@ -12,23 +12,13 @@ public class OwnerIsNotMatchException : Exception
 
 }
 
-public class FireOperationBuilder
+public class FireOperationBuilder(FirestoreDb firestore, IMapper mapper, IUserService userService)
 {
-    private readonly FirestoreDb _firestore;
-    private readonly IMapper _mapper;
-    public CollectionReference PackagesReference { get; private set; }
-    public CollectionReference PackagesLinks { get; private set; }
+    public CollectionReference PackagesReference { get; private set; } = firestore.Collection("packages");
+    public CollectionReference PackagesLinks { get; private set; } = firestore.Collection("packages-links");
 
-    public FireOperationBuilder(FirestoreDb firestore, IMapper mapper)
-    {
-        _firestore = firestore;
-        _mapper = mapper;
-        PackagesReference = firestore.Collection("packages");
-        PackagesLinks = firestore.Collection("packages-links");
-    }
-
-    public DocumentReference Document(string path) => _firestore.Document(path);
-    public CollectionReference Collecton(string path) => _firestore.Collection(path);
+    public DocumentReference Document(string path) => firestore.Document(path);
+    public CollectionReference Collecton(string path) => firestore.Collection(path);
 
     public async Task<PackageEntity?> Retrieve(string packageId, NuGetVersion packageVersion)
     {
@@ -68,7 +58,7 @@ public class FireOperationBuilder
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="OwnerIsNotMatchException">Owner UID is not matched.</exception>
-    public async Task<WriteResult> AddPackage([NotNull] Package package, [NotNull] UserRecord owner)
+    public async Task<WriteResult> AddPackage(Package package, UserRecord owner)
     {
         if (package == null) throw new ArgumentNullException(nameof(package));
         if (owner == null) throw new ArgumentNullException(nameof(owner));
@@ -76,7 +66,7 @@ public class FireOperationBuilder
         var version = package.Version;
         var normalizedVersion = version.ToNormalizedString();
 
-        var entity = _mapper.Map<PackageEntity>(package);
+        var entity = mapper.Map<PackageEntity>(package);
 
         var document = PackagesReference
             .Document(entity.Id);
@@ -90,7 +80,8 @@ public class FireOperationBuilder
 
         if (!snapshot.Exists)
         {
-            PackageValidator.ValidateNewPackage(package);
+            if (!await userService.UserAllowedSkipPublishVerification())
+                PackageValidator.ValidateNewPackage(package);
 
             var kv = new Dictionary<string, object>
             {

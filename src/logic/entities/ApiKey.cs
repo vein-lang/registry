@@ -44,6 +44,9 @@ public class UserDetails
 
     [FirestoreProperty("isAllowedPublishServicePackage"), JsonProperty("isAllowedPublishServicePackage")]
     public bool IsAllowedPublishServicePackage { get; set; }
+
+    [FirestoreProperty("isAllowedSkipPublishVerification"), JsonProperty("isAllowedSkipPublishVerification")]
+    public bool IsAllowedSkipPublishVerification { get; set; }
 }
 
 

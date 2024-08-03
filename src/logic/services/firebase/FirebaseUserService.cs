@@ -53,6 +53,22 @@ public class FirebaseUserService(
         return list.Select(x => x.ConvertTo<ApiKey>()).ToList().AsReadOnly();
     }
 
+    [Interceptor("Failed UserAllowedSkipPublishVerification")]
+    public async Task<bool> UserAllowedSkipPublishVerification()
+    {
+        var me = await GetMeAsync();
+
+        var user = await operationBuilder.Collection("users")
+            .Document(me.Uid)
+            .GetSnapshotAsync();
+        if (!user.Exists)
+            return false;
+
+        var userData = user.ConvertTo<UserDetails>();
+
+        return userData.IsAllowedSkipPublishVerification;
+    }
+
     [Interceptor("Failed get access details for user")]
     public async Task<bool> UserAllowedPublishWorkloads()
     {
@@ -61,15 +77,10 @@ public class FirebaseUserService(
         var user = await operationBuilder.Collection("users")
             .Document(me.Uid)
             .GetSnapshotAsync();
-        logger.LogInformation($"[UserAllowedPublishWorkloads] snapshot exist : {user.Exists}");
         if (!user.Exists)
             return false;
-        logger.LogInformation($"[UserAllowedPublishWorkloads] snapshot date : {user.CreateTime}");
 
         var userData = user.ConvertTo<UserDetails>();
-
-        logger.LogInformation($"[UserAllowedPublishWorkloads] userData: {JsonConvert.SerializeObject(userData)}");
-        logger.LogInformation($"[UserAllowedPublishWorkloads] userFields: {JsonConvert.SerializeObject(user.ToDictionary())}");
 
         return userData.IsAllowedPublishWorkloads;
     }
@@ -174,4 +185,5 @@ public interface IUserService
     public ValueTask IndexPackageAsync(Package package);
 
     public Task<bool> UserAllowedPublishWorkloads();
+    public Task<bool> UserAllowedSkipPublishVerification();
 }

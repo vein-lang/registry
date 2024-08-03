@@ -3,6 +3,7 @@ namespace core.controllers;
 using services;
 using Microsoft.AspNetCore.Mvc;
 using Sentry;
+using vein.project.shards;
 
 [Route("@/publish"), ApiKeyAuth]
 [ApiController]
@@ -80,6 +81,17 @@ public class PackagePublishController(
                     task?.Finish(SpanStatus.PermissionDenied);
                     break;
             }
+        }
+        catch (ShardPackageCorruptedException i) when (i.InnerException is PackageValidatorException e)
+        {
+            logger.LogError(e, "Exception thrown during package validation");
+            HttpContext.Response.StatusCode = 400;
+            await HttpContext.Response.WriteAsJsonAsync(new
+            {
+                message = e.Message,
+                traceId = HttpContext.Request.Headers["traceparent"].ToString()
+            }, cancellationToken: cancellationToken);
+            task?.Finish(e, SpanStatus.InternalError);
         }
         catch (PackageValidatorException e)
         {
