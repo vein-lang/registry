@@ -7,16 +7,11 @@ using Newtonsoft.Json;
 
 [AllowAnonymous]
 [ApiController]
-public class ServiceIndexController
+public class ServiceIndexController(IServiceIndexService serviceIndex)
 {
-    private readonly IServiceIndexService _serviceIndex;
-
-    public ServiceIndexController(IServiceIndexService serviceIndex)
-        => _serviceIndex = serviceIndex;
-
     [HttpGet("@/index.json")]
     public async Task<ServiceIndexResponse> GetAsync(CancellationToken cancellationToken)
-        => await _serviceIndex.GetAsync(cancellationToken);
+        => await serviceIndex.GetAsync(cancellationToken);
 }
 
 

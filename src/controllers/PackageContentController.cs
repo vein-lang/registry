@@ -8,26 +8,23 @@ using services;
 
 [AllowAnonymous]
 [ApiController]
-public class PackageContentController : Controller
+public class PackageContentController(
+    IPackageContentService content,
+    MarkdownService markdownService,
+    IMemoryCache cache)
+    : Controller
 {
-    private readonly IPackageContentService _content;
-    private readonly MarkdownService _markdownService;
-    private readonly IMemoryCache _cache;
-
-    public PackageContentController(IPackageContentService content, MarkdownService markdownService, IMemoryCache cache)
-        => (_content, _markdownService, _cache) = (content, markdownService, cache);
-
     [HttpGet("@/packages/{id}/version.json")]
     public async Task<ActionResult<PackageVersionsResponse>> GetPackageVersionsAsync(string id, CancellationToken cancellationToken)
     {
-        if (_cache.TryGetValue($"@/packages/{id}/version.json", out PackageVersionsResponse resut))
-            return Json(resut);
+        if (cache.TryGetValue($"@/packages/{id}/version.json", out PackageVersionsResponse result))
+            return Json(result);
 
-        var versions = await _content.GetPackageVersionsOrNullAsync(id, cancellationToken);
+        var versions = await content.GetPackageVersionsOrNullAsync(id, cancellationToken);
         if (versions == null)
             return NotFound();
 
-        _cache.Set($"@/packages/{id}/version.json", versions, TimeSpan.FromMinutes(15));
+        cache.Set($"@/packages/{id}/version.json", versions, TimeSpan.FromMinutes(15));
 
         return Json(versions);
     }
@@ -42,7 +39,7 @@ public class PackageContentController : Controller
             not null         => NuGetVersion.Parse(version)
         };
 
-        var packageStream = await _content.GetPackageContentStreamOrNullAsync(id, ver, cancellationToken);
+        var packageStream = await content.GetPackageContentStreamOrNullAsync(id, ver, cancellationToken);
         if (packageStream == null)
             return NotFound();
 
@@ -59,7 +56,7 @@ public class PackageContentController : Controller
             not null         => NuGetVersion.Parse(version)
         };
 
-        var nuspecStream = await _content.GetPackageManifestStreamOrNullAsync(id, ver, cancellationToken);
+        var nuspecStream = await content.GetPackageManifestStreamOrNullAsync(id, ver, cancellationToken);
         if (nuspecStream == null)
             return NotFound();
 
@@ -69,8 +66,8 @@ public class PackageContentController : Controller
     [HttpGet("@/packages/{id}/{version}/readme")]
     public async Task<IActionResult> DownloadReadmeAsync(string id, string version, CancellationToken cancellationToken)
     {
-        if (_cache.TryGetValue($"@/packages/{id}/{version}/readme", out string md))
-            return Content(_markdownService.GetHtmlFromMarkdown(md).Content, "text/html");
+        if (cache.TryGetValue($"@/packages/{id}/{version}/readme", out string md))
+            return Content(markdownService.GetHtmlFromMarkdown(md).Content, "text/html");
         var ver = version switch
         {
             "latest" or null => new (0, 0, 0, 0, "", "latest"),
@@ -78,7 +75,7 @@ public class PackageContentController : Controller
             not null         => NuGetVersion.Parse(version)
         };
 
-        var readmeStream = await _content.GetPackageReadmeStreamOrNullAsync(id, ver, cancellationToken);
+        var readmeStream = await content.GetPackageReadmeStreamOrNullAsync(id, ver, cancellationToken);
 
         if (readmeStream == null)
             return NotFound();
@@ -87,10 +84,10 @@ public class PackageContentController : Controller
 
         var result = await reader.ReadToEndAsync(cancellationToken);
 
-        _cache.Set($"@/packages/{id}/{version}/readme", result,
+        cache.Set($"@/packages/{id}/{version}/readme", result,
             ver.HasMetadata ? TimeSpan.FromMinutes(15) : TimeSpan.FromHours(6));
         
-        return Content(_markdownService.GetHtmlFromMarkdown(result).Content, "text/html");
+        return Content(markdownService.GetHtmlFromMarkdown(result).Content, "text/html");
     }
 
     [HttpGet("@/packages/{id}/{version}/icon")]
@@ -103,7 +100,7 @@ public class PackageContentController : Controller
             not null         => NuGetVersion.Parse(version)
         };
 
-        var iconStream = await _content.GetPackageIconStreamOrNullAsync(id, ver, cancellationToken);
+        var iconStream = await content.GetPackageIconStreamOrNullAsync(id, ver, cancellationToken);
         if (iconStream == null)
             return NotFound();
         return File(iconStream, "image/png");

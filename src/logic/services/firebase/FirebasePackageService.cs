@@ -10,26 +10,17 @@ using NuGet.Versioning;
 /// <summary>
 /// Stores the metadata of packages using Azure Table Storage.
 /// </summary>
-public partial class FirebasePackageService : IPackageService
+public partial class FirebasePackageService(
+    FireOperationBuilder operationBuilder,
+    ILogger<FirebasePackageService> logger,
+    IMapper mapper,
+    IUrlGenerator urlGenerator)
+    : IPackageService
 {
     private const int MaxPreconditionFailures = 5;
 
-    private readonly FireOperationBuilder _operationBuilder;
-    private readonly ILogger<FirebasePackageService> _logger;
-    private readonly IMapper _mapper;
-    private readonly IUrlGenerator _urlGenerator;
-
-    public FirebasePackageService(
-        FireOperationBuilder operationBuilder,
-        ILogger<FirebasePackageService> logger,
-        IMapper mapper,
-        IUrlGenerator urlGenerator)
-    {
-        _operationBuilder = operationBuilder ?? throw new ArgumentNullException(nameof(operationBuilder));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _mapper = mapper;
-        _urlGenerator = urlGenerator;
-    }
+    private readonly FireOperationBuilder _operationBuilder = operationBuilder ?? throw new ArgumentNullException(nameof(operationBuilder));
+    private readonly ILogger<FirebasePackageService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task<PackageAddResult> AddAsync(Package package, UserRecord owner, CancellationToken token = default)
     {
@@ -98,12 +89,12 @@ public partial class FirebasePackageService : IPackageService
             _operationBuilder.PackagesReference
                 .ListDocumentsAsync()
                 .Where(x => links.Contains(x.Id))
-                .SelectAwait(async x => await x.GetSnapshotAsync())
+                .SelectAwait(async x => await x.GetSnapshotAsync(cancellationToken))
                 .ToListAsync(cancellationToken);
 
         return packages
             .Select(x => x.ConvertTo<PackageEntity>())
-            .Select(x => _mapper.Map<Package>(x))
+            .Select(x => mapper.Map<Package>(x))
             .OrderBy(x => x.Name)
             .ToList()
             .AsReadOnly();
@@ -120,7 +111,7 @@ public partial class FirebasePackageService : IPackageService
                 .Collection("v")
                 .Limit(500)
                 .GetSnapshotAsync(cancellationToken);
-        var a = filter.Select(x => x.ConvertTo<PackageEntity>()).Select(x => _mapper.Map<Package>(x)).ToList();
+        var a = filter.Select(x => x.ConvertTo<PackageEntity>()).Select(x => mapper.Map<Package>(x)).ToList();
 
         if (!includeUnlisted)
             a = a.Where(x => x.Listed).ToList();
@@ -131,7 +122,7 @@ public partial class FirebasePackageService : IPackageService
             .AsReadOnly();
     }
 
-    private static Dictionary<(string, NuGetVersion), Package> _cachePackages = new ();
+    private static readonly Dictionary<(string, NuGetVersion), Package> _cachePackages = new ();
 
 
     public async Task<Package?> FindOrNullAsync(
@@ -151,7 +142,7 @@ public partial class FirebasePackageService : IPackageService
         if (!includeUnlisted && !entity.Listed)
             return null;
 
-        var result = _mapper.Map<Package>(entity);
+        var result = mapper.Map<Package>(entity);
 
         if (!version.Metadata.Equals("next") || !version.Metadata.Equals("latest"))
             _cachePackages[(id, version)] = result;
@@ -204,8 +195,8 @@ public partial class FirebasePackageService : IPackageService
             .Select(x => x.GetSnapshotAsync());
         var r2 = await Task.WhenAll(r1);
         var r3 = r2
-            .Select(x => _mapper.Map<Package>(x.ConvertTo<PackageEntity>()))
-            .Pipe(x => x.Icon = x.HasEmbeddedIcon ? _urlGenerator.GetPackageIconDownloadUrl(x.Name, x.Version) : x.Icon)
+            .Select(x => mapper.Map<Package>(x.ConvertTo<PackageEntity>()))
+            .Pipe(x => x.Icon = x.HasEmbeddedIcon ? urlGenerator.GetPackageIconDownloadUrl(x.Name, x.Version) : x.Icon)
             .ToList();
         return r3;
     }

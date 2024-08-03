@@ -33,6 +33,8 @@ public class PackageEntity
     [FirestoreProperty]
     public string License { get; set; }
     [FirestoreProperty]
+    public bool IsWorkload { get; set; }
+    [FirestoreProperty]
     public PackageUrls Urls { get;set; }
     [FirestoreProperty]
     public List<PackageReference> Dependencies { get; set; }

@@ -23,6 +23,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Dockerfile = Dockerfile
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "capi", "vein-lang\lib\capi\capi.csproj", "{7D9F04CE-15B6-4990-AC3A-2B81775E09D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{A608826A-8742-4C22-A34F-CB54E5361DAC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A608826A-8742-4C22-A34F-CB54E5361DAC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A608826A-8742-4C22-A34F-CB54E5361DAC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D9F04CE-15B6-4990-AC3A-2B81775E09D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D9F04CE-15B6-4990-AC3A-2B81775E09D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D9F04CE-15B6-4990-AC3A-2B81775E09D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D9F04CE-15B6-4990-AC3A-2B81775E09D7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -53,6 +59,7 @@ Global
 		{F6C95774-E75F-4DA8-99FA-F81DCE13C11F} = {4E1FB4B5-787A-4A10-B23C-08FF1F5DF8FE}
 		{286ECD4A-748F-42C5-B7A6-97D561FE01A4} = {4E1FB4B5-787A-4A10-B23C-08FF1F5DF8FE}
 		{A608826A-8742-4C22-A34F-CB54E5361DAC} = {4E1FB4B5-787A-4A10-B23C-08FF1F5DF8FE}
+		{7D9F04CE-15B6-4990-AC3A-2B81775E09D7} = {4E1FB4B5-787A-4A10-B23C-08FF1F5DF8FE}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {FA44E4F3-7C78-47F7-9ECC-08293CE00B83}

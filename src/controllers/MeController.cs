@@ -6,26 +6,17 @@ using services;
 
 [Authorize]
 [ApiController]
-public class MeController : Controller
+public class MeController(IUserService _userService, IPackageService packageService) : Controller
 {
-    private readonly IUserService _userService;
-    private readonly IPackageService _packageService;
-
-    public MeController(IUserService _userService, IPackageService packageService)
-    {
-        this._userService = _userService;
-        this._packageService = packageService;
-    }
-
     [HttpGet("@/me")]
-    public async Task<IActionResult> GetMe()
-        => Json(await _userService.GetMeAsync());
+    public async Task<IActionResult> GetMe(CancellationToken token)
+        => Json(await _userService.GetMeAsync(token));
 
     [HttpGet("@/me/packages")]
     public async Task<IActionResult> GetMePackages(CancellationToken token)
     {
-        var me = await _userService.GetMeAsync();
-        var packages = await _packageService.GetLatestPackagesByUserAsync(me, token);
+        var me = await _userService.GetMeAsync(token);
+        var packages = await packageService.GetLatestPackagesByUserAsync(me, token);
         return Json(packages);
     }
 

@@ -41,8 +41,8 @@ public class PackageIndexingService : IPackageIndexingService
 
         try
         {
-            var packageReader = await Shard.OpenAsync(packageStream, true);
-            var manifest = await packageReader.GetManifestAsync();
+            var packageReader = await Shard.OpenAsync(packageStream, true, token);
+            var manifest = await packageReader.GetManifestAsync(token);
             package = _mapper.Map<Package>(manifest);
             package.Published = _time.UtcNow;
             package.Listed = true;

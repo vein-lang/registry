@@ -6,25 +6,17 @@ using services;
 using services.searchs;
 
 [ApiController]
-public class StateController : Controller
+public class StateController(IPackageService packageService, IMemoryCache cache) : Controller
 {
-    private readonly IPackageService _packageService;
-    private readonly IMemoryCache _cache;
-    public StateController(IPackageService packageService, IMemoryCache cache)
-    {
-        _packageService = packageService;
-        _cache = cache;
-    }
-
     [HttpGet("@/state")]
     public async Task<IActionResult> GetState()
     {
-        if (_cache.TryGetValue("@/state", out PackagesState state))
+        if (cache.TryGetValue("@/state", out PackagesState state))
             return Json(state);
-        var latest = await _packageService.GetLatestPackagesAsync();
-        var count = await _packageService.GetPackagesCountAsync();
-        var downloads = await _packageService.GetTotalDownloadsAsync();
-        var popular = await _packageService.GetPopularPackagesAsync();
+        var latest = await packageService.GetLatestPackagesAsync();
+        var count = await packageService.GetPackagesCountAsync();
+        var downloads = await packageService.GetTotalDownloadsAsync();
+        var popular = await packageService.GetPopularPackagesAsync();
 
 
         var result = new PackagesState()
@@ -38,7 +30,7 @@ public class StateController : Controller
             popular_packages = popular
         };
 
-        _cache.Set("@/state", result, TimeSpan.FromHours(12));
+        cache.Set("@/state", result, TimeSpan.FromHours(12));
 
         return Json(result);
     }

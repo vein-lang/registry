@@ -127,8 +127,8 @@ public class FireOperationBuilder
             .Select(x => ((DocumentReference path, NuGetVersion version))(x, NuGetVersion.Parse(x.Id)))
             .ToListAsync();
 
-        var latestVersion = versions.OrderByDescending(x => x.version).Where(x => !x.version.IsPrerelease).First();
-        var nextVersion = versions.OrderByDescending(x => x.version).Where(x => x.version.IsPrerelease).FirstOrDefault();
+        var latestVersion = versions.OrderByDescending(x => x.version).First(x => !x.version.IsPrerelease);
+        var nextVersion = versions.OrderByDescending(x => x.version).FirstOrDefault(x => x.version.IsPrerelease);
 
         nextVersion = nextVersion.version >= latestVersion.version ? nextVersion : latestVersion;
 
@@ -234,7 +234,8 @@ public class FireOperationBuilder
     }
 }
 
-public class FirestoreSearchService : ISearchService
+public class FirestoreSearchService(FireOperationBuilder operationBuilder, IUrlGenerator url, IMapper mapper)
+    : ISearchService
 {
     private static readonly Task<DependentsResponse> EmptyDependentsResponseTask =
             Task.FromResult(new DependentsResponse
@@ -243,16 +244,7 @@ public class FirestoreSearchService : ISearchService
                 Data = new List<DependentResult>()
             });
 
-    private readonly FireOperationBuilder _table;
-    private readonly IUrlGenerator _url;
-    private readonly IMapper _mapper;
-
-    public FirestoreSearchService(FireOperationBuilder operationBuilder, IUrlGenerator url, IMapper mapper)
-    {
-        _table = operationBuilder ?? throw new ArgumentNullException(nameof(operationBuilder));
-        _url = url;
-        _mapper = mapper;
-    }
+    private readonly FireOperationBuilder _table = operationBuilder ?? throw new ArgumentNullException(nameof(operationBuilder));
 
     public async Task<IReadOnlyList<Package>> SearchAsync(
         SearchRequest request,
@@ -376,10 +368,10 @@ public class FirestoreSearchService : ISearchService
         }
 
         var iconUrl = latest.HasEmbeddedIcon
-                ? _url.GetPackageIconDownloadUrl(latest.Id, latestVersion)
+                ? url.GetPackageIconDownloadUrl(latest.Id, latestVersion)
                 : latest.IconUrl;
 
-        var result = _mapper.Map<Package>(latest);
+        var result = mapper.Map<Package>(latest);
         result.Icon = iconUrl;
         return result;
     }

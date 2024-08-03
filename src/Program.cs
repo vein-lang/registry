@@ -16,7 +16,7 @@ FirebaseApp.Create(new AppOptions()
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost
-    .UseUrls($"http://*.*.*.*:{Environment.GetEnvironmentVariable("PORT") ?? "8080"}");
+    .UseUrls($"http://*.*.*.*:{Environment.GetEnvironmentVariable("PORT") ?? "8080"}", "http://*.*.*.*:5062");
 builder.WebHost.UseSentry(o =>
 {
     o.Dsn = Environment.GetEnvironmentVariable("VEIN_SENTRY_DNS") ?? "";
