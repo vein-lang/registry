@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Sentry;
 using vein.project.shards;
 
-[Route("@/publish"), ApiKeyAuth]
-[ApiController]
+
+[ApiController, ApiKeyAuth]
 public class PackagePublishController(
     IPackageIndexingService indexer,
     ILogger<PackagePublishController> logger,
@@ -14,6 +14,7 @@ public class PackagePublishController(
     IHub sentryHub)
     : Controller
 {
+    [Route("@/publish")]
     public async Task Upload(CancellationToken cancellationToken)
     {
         var task = sentryHub.GetSpan()?.StartChild($"{nameof(PackagePublishController)}::{nameof(Upload)}");
@@ -28,8 +29,6 @@ public class PackagePublishController(
             }
 
             var me = await userService.GetMeAsync(cancellationToken);
-
-            logger.LogInformation($"indexer.IndexAsync");
             var result = await indexer.IndexAsync(uploadStream, me, cancellationToken);
 
             switch (result.Item1)

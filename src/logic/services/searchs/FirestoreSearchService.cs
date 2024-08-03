@@ -12,7 +12,7 @@ public class OwnerIsNotMatchException : Exception
 
 }
 
-public class FireOperationBuilder(FirestoreDb firestore, IMapper mapper, IUserService userService)
+public class FireOperationBuilder(FirestoreDb firestore, IMapper mapper, IServiceProvider serviceProvider)
 {
     public CollectionReference PackagesReference { get; private set; } = firestore.Collection("packages");
     public CollectionReference PackagesLinks { get; private set; } = firestore.Collection("packages-links");
@@ -76,7 +76,9 @@ public class FireOperationBuilder(FirestoreDb firestore, IMapper mapper, IUserSe
 
         var verified = false;
         var isServiced = false;
-        
+
+        await using var scope = serviceProvider.CreateAsyncScope();
+        var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
 
         if (!snapshot.Exists)
         {

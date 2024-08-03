@@ -31,23 +31,20 @@ public class PackageIndexingService(
 
         try
         {
-            logger.LogInformation($"Shard.OpenAsync");
             var packageReader = await Shard.OpenAsync(packageStream, true, token);
-            logger.LogInformation($"packageReader.GetManifestAsync");
             var manifest = await packageReader.GetManifestAsync(token);
-            logger.LogInformation($"userService.UserAllowedPublishWorkloads");
+
             if (manifest.IsWorkload && !await userService.UserAllowedPublishWorkloads())
                 return (PackageIndexingResult.InvalidPackage, "You cannot publish workload package!");
-            
+
             package = mapper.Map<Package>(manifest);
             package.Published = _time.UtcNow;
             package.Listed = true;
-            
+
             if (package.HasEmbbededReadme)
                 readmeStream = await packageReader.GetReadmeAsync(token);
             if (package.HasEmbeddedIcon)
                 iconStream = await packageReader.GetIconAsync(token);
-            logger.LogInformation($"PackageValidator.ValidateExistAsync");
             await PackageValidator.ValidateExistAsync(packageReader);
         }
         catch (ShardPackageCorruptedException e) when (e.InnerException is PackageValidatorException validateError)
@@ -57,13 +54,19 @@ public class PackageIndexingService(
 
             return (PackageIndexingResult.InvalidPackage, validateError.Message);
         }
+        catch (PackageValidatorException e)
+        {
+            _logger.LogError(e, "Validation failed");
+            _logger.LogError(e.Message);
+
+            return (PackageIndexingResult.InvalidPackage, e.Message);
+        }
         catch (Exception e)
         {
             _logger.LogError(e, "Uploaded package is invalid");
 
             return (PackageIndexingResult.InternalError, "unknown error");
         }
-
 
         // The package is well-formed. Ensure this is a new package.
         if (await _packages.ExistsAsync(package.Name, package.Version, token))
