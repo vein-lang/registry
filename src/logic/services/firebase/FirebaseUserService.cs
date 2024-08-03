@@ -61,7 +61,7 @@ public class FirebaseUserService(
             .Document(me.Uid)
             .GetSnapshotAsync();
 
-        if (user.Exists)
+        if (!user.Exists)
             return false;
         var userData = user.ConvertTo<UserDetails>();
 
