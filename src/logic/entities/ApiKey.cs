@@ -27,6 +27,26 @@ public class ApiKey
 }
 
 
+[FirestoreData]
+public class UserDetails
+{
+    [FirestoreDocumentId, JsonProperty("uid")]
+    public string UID { get; set; }
+
+    [FirestoreProperty("owner"), JsonProperty]
+    public string UserOwner { get; set; }
+
+    [FirestoreDocumentCreateTimestamp, JsonProperty("creationDate")]
+    public DateTimeOffset CreationDate { get; set; }
+
+    [FirestoreProperty, JsonProperty("isAllowedPublishWorkloads")]
+    public bool IsAllowedPublishWorkloads { get; set; }
+
+    [FirestoreProperty, JsonProperty("isAllowedPublishServicePackage")]
+    public bool IsAllowedPublishServicePackage { get; set; }
+}
+
+
 public class TimeSpanConverter : IFirestoreConverter<TimeSpan>
 {
     public TimeSpan FromFirestore(object value) => TimeSpan.Parse((string)value);

@@ -12,6 +12,7 @@ public class PackageIndexingService(
     SystemTime time,
     IOptionsSnapshot<RegistryOptions> options,
     ILogger<PackageIndexingService> logger,
+    IUserService userService,
     IMapper mapper)
     : IPackageIndexingService
 {
@@ -32,6 +33,10 @@ public class PackageIndexingService(
         {
             var packageReader = await Shard.OpenAsync(packageStream, true, token);
             var manifest = await packageReader.GetManifestAsync(token);
+
+            if (manifest.IsWorkload && !await userService.UserAllowedPublishWorkloads())
+                return (PackageIndexingResult.InvalidPackage, "You cannot publish workload package!");
+            
             package = mapper.Map<Package>(manifest);
             package.Published = _time.UtcNow;
             package.Listed = true;
