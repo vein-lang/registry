@@ -7,6 +7,7 @@ using aspects;
 using FirebaseAdmin.Auth;
 using Flurl.Http;
 using Google.Cloud.Firestore;
+using Newtonsoft.Json;
 using searchs;
 
 public class FirebaseUserService(
@@ -60,10 +61,14 @@ public class FirebaseUserService(
         var user = await operationBuilder.Collection("users")
             .Document(me.Uid)
             .GetSnapshotAsync();
-
+        logger.LogInformation($"[UserAllowedPublishWorkloads] snapshot exist : {user.Exists}");
         if (!user.Exists)
             return false;
+        logger.LogInformation($"[UserAllowedPublishWorkloads] snapshot date : {user.CreateTime}");
+
         var userData = user.ConvertTo<UserDetails>();
+
+        logger.LogInformation($"[UserAllowedPublishWorkloads] userData: {JsonConvert.SerializeObject(userData)}");
 
         return userData.IsAllowedPublishWorkloads;
     }
