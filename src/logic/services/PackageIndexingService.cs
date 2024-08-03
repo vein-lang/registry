@@ -43,12 +43,18 @@ public class PackageIndexingService(
 
             await PackageValidator.ValidateExistAsync(packageReader);
         }
-        catch (ShardPackageCorruptedException e)
+        catch (ShardPackageCorruptedException e) when (e.InnerException is PackageValidatorException validateError)
         {
-            _logger.LogError("Uploaded package is invalid");
+            _logger.LogError(e, "Uploaded package is invalid");
             _logger.LogError(e.Message);
 
-            return (PackageIndexingResult.InvalidPackage, e.Message);
+            return (PackageIndexingResult.InvalidPackage, validateError.Message);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Uploaded package is invalid");
+
+            return (PackageIndexingResult.InternalError, "unknown error");
         }
 
 
