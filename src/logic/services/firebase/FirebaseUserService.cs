@@ -69,6 +69,7 @@ public class FirebaseUserService(
         var userData = user.ConvertTo<UserDetails>();
 
         logger.LogInformation($"[UserAllowedPublishWorkloads] userData: {JsonConvert.SerializeObject(userData)}");
+        logger.LogInformation($"[UserAllowedPublishWorkloads] userFields: {JsonConvert.SerializeObject(user.ToDictionary())}");
 
         return userData.IsAllowedPublishWorkloads;
     }

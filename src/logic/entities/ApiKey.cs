@@ -39,10 +39,10 @@ public class UserDetails
     [FirestoreDocumentCreateTimestamp, JsonProperty("creationDate")]
     public DateTimeOffset CreationDate { get; set; }
 
-    [FirestoreProperty, JsonProperty("isAllowedPublishWorkloads")]
+    [FirestoreProperty("isAllowedPublishWorkloads"), JsonProperty("isAllowedPublishWorkloads")]
     public bool IsAllowedPublishWorkloads { get; set; }
 
-    [FirestoreProperty, JsonProperty("isAllowedPublishServicePackage")]
+    [FirestoreProperty("isAllowedPublishServicePackage"), JsonProperty("isAllowedPublishServicePackage")]
     public bool IsAllowedPublishServicePackage { get; set; }
 }
 
