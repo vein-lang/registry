@@ -30,4 +30,9 @@ public record Package : PackageManifest
 
     [JsonProperty("hasServicedPackage")]
     public bool HasServicedPackage { get; set; }
+
+
+    public const string LatestTag = "latest";
+    public const string NextTag = "next";
+
 }

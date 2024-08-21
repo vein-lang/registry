@@ -30,7 +30,7 @@ public class StateController(IPackageService packageService, IMemoryCache cache)
             popular_packages = popular
         };
 
-        cache.Set("@/state", result, TimeSpan.FromHours(12));
+        cache.Set("@/state", result, TimeSpan.FromHours(24));
 
         return Json(result);
     }

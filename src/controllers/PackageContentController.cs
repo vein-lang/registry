@@ -24,7 +24,7 @@ public class PackageContentController(
         if (versions == null)
             return NotFound();
 
-        cache.Set($"@/packages/{id}/version.json", versions, TimeSpan.FromMinutes(15));
+        cache.Set($"@/packages/{id}/version.json", versions, TimeSpan.FromMinutes(5));
 
         return Json(versions);
     }
@@ -84,8 +84,7 @@ public class PackageContentController(
 
         var result = await reader.ReadToEndAsync(cancellationToken);
 
-        cache.Set($"@/packages/{id}/{version}/readme", result,
-            ver.HasMetadata ? TimeSpan.FromMinutes(15) : TimeSpan.FromHours(6));
+        cache.Set($"@/packages/{id}/{version}/readme", result, TimeSpan.FromHours(6));
         
         return Content(markdownService.GetHtmlFromMarkdown(result).Content, "text/html");
     }

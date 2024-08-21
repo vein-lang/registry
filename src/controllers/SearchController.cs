@@ -20,13 +20,16 @@ public class SearchController(
     [HttpGet("@/package/{name}/{version}")]
     public async Task<ActionResult<Package>> FindByName(string name, string version, [FromQuery] bool includeUnlisted = false)
     {
-        if (cache.TryGetValue((name, version), out Package package))
+        if (string.IsNullOrEmpty(version))
+            return BadRequest(new { message = "version cannot be null" });
+
+        if (cache.TryGetValue((name, version), out Package? package))
             return Json(package);
 
         var ver = version switch
         {
-            "latest" or null => new (0, 0, 0, 0, "", "latest"),
-            "next"           => new (0, 0, 0, 0, "", "next"),
+            Package.LatestTag or null => new (0, 0, 0, 0, "", Package.LatestTag),
+            Package.NextTag           => new (0, 0, 0, 0, "", Package.NextTag),
             not null         => NuGetVersion.Parse(version)
         };
 
@@ -39,9 +42,10 @@ public class SearchController(
             ? urlGenerator.GetPackageIconDownloadUrl(result.Name, result.Version)
             : result.Icon;
 
+        if (!version!.Equals(Package.LatestTag) && !version.Equals(Package.NextTag))
+            return Json(result);
 
-        cache.Set((name, version), result, ver.HasMetadata ? TimeSpan.FromMinutes(15) : TimeSpan.FromDays(2));
-
+        cache.Set((name, version), result, TimeSpan.FromDays(2));
         return Json(result);
     }
 
