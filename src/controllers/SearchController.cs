@@ -42,7 +42,7 @@ public class SearchController(
             ? urlGenerator.GetPackageIconDownloadUrl(result.Name, result.Version)
             : result.Icon;
 
-        if (!version!.Equals(Package.LatestTag) && !version.Equals(Package.NextTag))
+        if (version!.Equals(Package.LatestTag) || version.Equals(Package.NextTag))
             return Json(result);
 
         cache.Set((name, version), result, TimeSpan.FromDays(2));

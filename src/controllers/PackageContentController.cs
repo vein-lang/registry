@@ -32,12 +32,10 @@ public class PackageContentController(
     [HttpGet("@/packages/{id}/{version}")]
     public async Task<IActionResult> DownloadPackageAsync(string id, string version, CancellationToken cancellationToken)
     {
-        var ver = version switch
-        {
-            "latest" or null => new (0, 0, 0, 0, "", "latest"),
-            "next"           => new (0, 0, 0, 0, "", "next"),
-            not null         => NuGetVersion.Parse(version)
-        };
+        if (version is ("latest" or "next"))
+            return BadRequest(new { message = "not allowed using latest or next version for this endpoint" });
+        if (NuGetVersion.TryParse(version, out var ver))
+            return BadRequest(new { message = "invalid version" });
 
         var packageStream = await content.GetPackageContentStreamOrNullAsync(id, ver, cancellationToken);
         if (packageStream == null)
