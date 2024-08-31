@@ -34,7 +34,7 @@ public class PackageContentController(
     {
         if (version is ("latest" or "next"))
             return BadRequest(new { message = "not allowed using latest or next version for this endpoint" });
-        if (NuGetVersion.TryParse(version, out var ver))
+        if (!NuGetVersion.TryParse(version, out var ver))
             return BadRequest(new { message = "invalid version" });
 
         var packageStream = await content.GetPackageContentStreamOrNullAsync(id, ver, cancellationToken);
