@@ -2,6 +2,7 @@ namespace core.services.searchs;
 
 using System.Diagnostics.CodeAnalysis;
 using AutoMapper;
+using controllers;
 using core.services.searchs.models;
 using Google.Cloud.Firestore;
 using Newtonsoft.Json;
@@ -12,13 +13,13 @@ public class OwnerIsNotMatchException : Exception
 
 }
 
-public class FireOperationBuilder(FirestoreDb firestore, IMapper mapper, IServiceProvider serviceProvider)
+public class FireOperationBuilder(FirestoreDb firestore, IMapper mapper, IServiceProvider serviceProvider, PackageCacheSystem cacheSystem)
 {
     public CollectionReference PackagesReference { get; private set; } = firestore.Collection("packages");
     public CollectionReference PackagesLinks { get; private set; } = firestore.Collection("packages-links");
 
     public DocumentReference Document(string path) => firestore.Document(path);
-    public CollectionReference Collecton(string path) => firestore.Collection(path);
+    public CollectionReference Collection(string path) => firestore.Collection(path);
 
     public async Task<PackageEntity?> Retrieve(string packageId, NuGetVersion packageVersion)
     {
@@ -31,16 +32,16 @@ public class FireOperationBuilder(FirestoreDb firestore, IMapper mapper, IServic
         
         var result = packageVersion switch
         {
-            { Metadata: "next" } when packageRoot.ContainsField("next") => await packageRoot
-                .GetValue<DocumentReference>("next")
+            { Metadata: Package.NextTag } when packageRoot.ContainsField(Package.NextTag) => await packageRoot
+                .GetValue<DocumentReference>(Package.NextTag)
                 .GetSnapshotAsync(),
-            { Metadata: "next" } when !packageRoot.ContainsField("next") => await packageRoot
-                .GetValue<DocumentReference>("latest")
+            { Metadata: Package.NextTag } when !packageRoot.ContainsField(Package.NextTag) => await packageRoot
+                .GetValue<DocumentReference>(Package.LatestTag)
                 .GetSnapshotAsync(),
-            { Metadata: "latest" } => await packageRoot
-                .GetValue<DocumentReference>("latest")
+            { Metadata: Package.LatestTag } => await packageRoot
+                .GetValue<DocumentReference>(Package.LatestTag)
                 .GetSnapshotAsync(),
-            { } => await PackagesReference
+            not null => await PackagesReference
                 .Document(packageId)
                 .Collection("v")
                 .Document(packageVersion.ToNormalizedString())
@@ -76,6 +77,8 @@ public class FireOperationBuilder(FirestoreDb firestore, IMapper mapper, IServic
 
         var verified = false;
         var isServiced = false;
+        var isWorkload = false;
+        var isMetapackage = false;
 
         await using var scope = serviceProvider.CreateAsyncScope();
         var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
@@ -97,13 +100,20 @@ public class FireOperationBuilder(FirestoreDb firestore, IMapper mapper, IServic
                 throw new OwnerIsNotMatchException();
             if (snapshot.ContainsField("IsVerified"))
                 verified = snapshot.GetValue<bool>("IsVerified");
-            if (snapshot.ContainsField("IsServiced"))
-                isServiced = snapshot.GetValue<bool>("IsServiced");
+            if (snapshot.ContainsField("HasServicedPackage"))
+                isServiced = snapshot.GetValue<bool>("HasServicedPackage");
+            isWorkload = snapshot.ContainsField("IsWorkload") ?
+                snapshot.GetValue<bool>("IsWorkload") :
+                package.IsWorkload;
+            if (snapshot.ContainsField("HasMetapackage"))
+                isMetapackage = snapshot.GetValue<bool>("HasMetapackage");
         }
 
 
         entity.IsVerified = verified;
         entity.HasServicedPackage = isServiced;
+        entity.IsWorkload = isWorkload;
+        entity.HasMetapackage = isMetapackage;
 
         var result = await PackagesReference
             .Document(entity.Id)
@@ -125,15 +135,18 @@ public class FireOperationBuilder(FirestoreDb firestore, IMapper mapper, IServic
 
         nextVersion = nextVersion.version >= latestVersion.version ? nextVersion : latestVersion;
 
+        var versionKv = new Dictionary<string, object>
         {
-            var kv = new Dictionary<string, object>
-            {
-                { "latest", latestVersion.path },
-                { "next", nextVersion.path }
-            };
+            { Package.LatestTag, latestVersion.path },
+            { Package.NextTag  , nextVersion.path }
+        };
 
-            await document.UpdateAsync(kv);
-        }
+        if (latestVersion.version == package.Version)
+            cacheSystem.InvalidatePackage(package.Name, Package.LatestTag);
+        if (nextVersion.version == package.Version)
+            cacheSystem.InvalidatePackage(package.Name, Package.NextTag);
+
+        await document.UpdateAsync(versionKv);
         return result;
     }
 

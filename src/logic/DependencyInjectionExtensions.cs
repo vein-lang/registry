@@ -1,5 +1,6 @@
 namespace core;
 
+using controllers;
 using core.services;
 using core.services.searchs;
 using Google.Cloud.Firestore;
@@ -37,25 +38,19 @@ public static class DependencyInjectionExtensions
     private static void AddRegistryServices(this IServiceCollection services)
     {
         services.AddAutoMapper(x => x.AddMaps(typeof(Mappers)));
-        services.AddSingleton(x =>
+        services.AddSingleton(x => new ConverterRegistry
         {
-            var converters = new ConverterRegistry();
-
-            converters.Add(new PackageAuthorConverter());
-            converters.Add(new GuidConverter());
-            converters.Add(new PackageUrlsConverter());
-            converters.Add(new PackageReferenceConverter());
-
-            return converters;
+            new PackageAuthorConverter(),
+            new GuidConverter(),
+            new PackageUrlsConverter(),
+            new PackageReferenceConverter()
         });
         services.AddProvider((provider, configuration)
-            =>
-        {
-            var a = new FirestoreDbBuilder();
-            a.ConverterRegistry = provider.GetService<ConverterRegistry>();
-            a.ProjectId = configuration.GetDatabaseConnectionString();
-            return a.Build();
-        });
+            => new FirestoreDbBuilder
+            {
+                ConverterRegistry = provider.GetService<ConverterRegistry>(),
+                ProjectId = configuration.GetDatabaseConnectionString()
+            }.Build());
         services.AddSingleton(GetServiceFromProviders<FirestoreDb>);
 
         services.TryAddSingleton<NullSearchIndexer>();
@@ -89,6 +84,7 @@ public static class DependencyInjectionExtensions
         services.TryAddTransient<FirebasePackageService>();
         services.TryAddTransient<GoogleCloudStorageService>();
         services.TryAddTransient<FirestoreSearchService>();
+        services.AddSingleton<PackageCacheSystem>();
 
     }
 

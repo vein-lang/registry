@@ -125,9 +125,7 @@ public partial class FirebasePackageService(
             .ToList()
             .AsReadOnly();
     }
-
-    private static readonly Dictionary<(string, NuGetVersion), Package> _cachePackages = new ();
-
+    
 
     public async Task<Package?> FindOrNullAsync(
         string id,
@@ -135,10 +133,6 @@ public partial class FirebasePackageService(
         bool includeUnlisted,
         CancellationToken cancellationToken)
     {
-        if (!version.Metadata.Equals("next") || !version.Metadata.Equals("latest"))
-            if (_cachePackages.ContainsKey((id, version)))
-                return _cachePackages[(id, version)];
-
         var entity = await _operationBuilder.Retrieve(id, version);
 
         if (entity == null)
@@ -147,9 +141,6 @@ public partial class FirebasePackageService(
             return null;
 
         var result = mapper.Map<Package>(entity);
-
-        if (!version.Metadata.Equals("next") || !version.Metadata.Equals("latest"))
-            _cachePackages[(id, version)] = result;
         return result;
     }
 

@@ -4,7 +4,10 @@ using System.Text;
 using Newtonsoft.Json;
 using NuGet.Versioning;
 
-public class PackageStorageService : IPackageStorageService
+public class PackageStorageService(
+    IStorageService storage,
+    ILogger<PackageStorageService> logger)
+    : IPackageStorageService
 {
     private const string PackagesPathPrefix = "packages";
 
@@ -13,16 +16,8 @@ public class PackageStorageService : IPackageStorageService
     private const string ReadmeContentType = "text/markdown";
     private const string IconContentType = "image/xyz";
 
-    private readonly IStorageService _storage;
-    private readonly ILogger<PackageStorageService> _logger;
-
-    public PackageStorageService(
-        IStorageService storage,
-        ILogger<PackageStorageService> logger)
-    {
-        _storage = storage ?? throw new ArgumentNullException(nameof(storage));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly IStorageService _storage = storage ?? throw new ArgumentNullException(nameof(storage));
+    private readonly ILogger<PackageStorageService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task SavePackageContentAsync(
         Package package,
