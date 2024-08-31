@@ -66,14 +66,17 @@ public class PackageContentController(
     [HttpGet("@/packages/{id}/{version}/readme")]
     public async Task<IActionResult> DownloadReadmeAsync(string id, string version, CancellationToken cancellationToken)
     {
-        if (cache.TryGetValue($"@/packages/{id}/{version}/readme", out string md))
+        if (version is not ("latest" or "next") && cache.TryGetValue($"@/packages/{id}/{version}/readme", out string md))
             return Content(markdownService.GetHtmlFromMarkdown(md).Content, "text/html");
+
         var ver = version switch
         {
             "latest" or null => new (0, 0, 0, 0, "", "latest"),
             "next"           => new (0, 0, 0, 0, "", "next"),
             not null         => NuGetVersion.Parse(version)
         };
+
+        
 
         var readmeStream = await content.GetPackageReadmeStreamOrNullAsync(id, ver, cancellationToken);
 
